@@ -37,6 +37,7 @@
 #include "vm/internal/compiler/keyword.h"
 #include "grammar.autogen.h"
 #include "vm/internal/compiler/scratchpad.h"
+#include "thirdparty/utf8_decoder_dfa/decoder.h"
 
 // FIXME: in master.h
 extern struct object_t *master_ob;
@@ -52,7 +53,10 @@ extern int NUM_OPTION_DEFS;
 
 #define NELEM(a) (sizeof(a) / sizeof((a)[0]))
 
-#define LEX_EOF ((unsigned char)EOF)
+// FIXME: This means current source code can not contain "NUL" byte,
+//  for now it seems suffice, but this should be fixed to check pointer address
+//  for EOF, not for value.
+#define LEX_EOF ((unsigned char)0)
 
 char lex_ctype[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1061,7 +1065,7 @@ static int get_terminator(char *terminator) {
 }
 
 #define MAXCHUNK (MAXLINE * 4)
-#define NUMCHUNKS (DEFMAX / MAXCHUNK)
+#define NUMCHUNKS 1024
 
 #define NEWCHUNK(line)                                                              \
   if (len == MAXCHUNK - 1) {                                                        \
@@ -2354,6 +2358,10 @@ int yylex() {
           if (rc > 0) {
             int n;
 
+            if(!utf8_validate((const uint8_t *) outp)) {
+              lexerror("Bad UTF-8 string in string block");
+              return LEX_EOF;
+            }
             /*
              * make string token and clean up
              */
@@ -2386,6 +2394,10 @@ int yylex() {
 
             case '"':
               *to++ = 0;
+              if(!utf8_validate(scr_tail + 1)) {
+                lexerror("Invalid UTF8 string");
+                return LEX_EOF;
+              }
               if (!l && (to == scratch_end)) {
                 char *res = scratch_large_alloc(to - scr_tail - 1);
                 strcpy(res, reinterpret_cast<char *>(scr_tail + 1));
@@ -2509,6 +2521,11 @@ int yylex() {
               res = scratch_large_alloc((yyp - yytext) + (to - scr_tail) - 1);
               strncpy(res, reinterpret_cast<char *>(scr_tail + 1), (to - scr_tail) - 1);
               strcpy(res + (to - scr_tail) - 1, yytext);
+              if(!utf8_validate((const uint8_t *) res)) {
+                lexerror("Invalid UTF8 string");
+                scratch_free(res);
+                return LEX_EOF;
+              }
               yylval.string = res;
               return L_STRING;
             }
@@ -2616,6 +2633,12 @@ int yylex() {
           res = scratch_large_alloc((yyp - yytext) + (to - scr_tail) - 1);
           strncpy(res, reinterpret_cast<char *>(scr_tail + 1), (to - scr_tail) - 1);
           strcpy(res + (to - scr_tail) - 1, yytext);
+          // Validate UTF8
+          if(!utf8_validate((const uint8_t *) res)) {
+            lexerror("Invalid UTF8 string");
+            scratch_free(res);
+            return LEX_EOF;
+          }
           yylval.string = res;
           return L_STRING;
         }

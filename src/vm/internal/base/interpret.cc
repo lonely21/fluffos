@@ -11,10 +11,12 @@
 #include "vm/internal/base/machine.h"
 #include "vm/internal/compiler/icode.h"  // for PUSH_WHAT
 #include "vm/internal/compiler/lex.h"    // for insstr, FIXME
-
+#include "thirdparty/utf8_decoder_dfa/decoder.h"
 #include "packages/core/sprintf.h"  // FIXME
 #include "packages/core/regexp.h"   // FIXME
 #include "packages/ops/ops.h"       // FIXME
+#include <unicode/utf8.h>
+
 
 int call_origin = 0;
 error_context_t *current_error_context = nullptr;
@@ -3084,12 +3086,17 @@ void eval_instruction(char *p) {
               error("String indexes must be integers.\n");
             }
             i = (sp - 1)->u.number;
-            if ((i > SVALUE_STRLEN(sp)) || (i < 0)) {
+            size_t codepoints;
+            auto success = utf8_codepoints((const uint8_t*)sp->u.string, &codepoints);
+            DEBUG_CHECK(!success, "Bad UTF-8 String.");
+            if (i > codepoints || i < 0) {
               error("String index out of bounds.\n");
             }
-            i = static_cast<unsigned char>(sp->u.string[i]);
+            UChar32 res;
+            U8_GET((const uint8_t*) sp->u.string, 0, i, -1, res);
+            DEBUG_CHECK(res < 0, "f_idnex: U8_GET failed!");
             free_string_svalue(sp);
-            (--sp)->u.number = i;
+            (--sp)->u.number = res;
             break;
           }
           case T_ARRAY: {

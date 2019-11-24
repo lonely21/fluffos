@@ -32,6 +32,7 @@
 #include "packages/core/custom_crypt.h"
 #include "packages/core/ed.h"
 #include "thirdparty/crypt/include/crypt.h"
+#include "thirdparty/utf8_decoder_dfa/decoder.h"
 
 int data_size(object_t *ob);
 void reload_object(object_t *obj);
@@ -2493,7 +2494,7 @@ void f_shutdown(void) {
 
 #ifdef F_SIZEOF
 void f_sizeof(void) {
-  int i;
+  size_t i;
 
   switch (sp->type) {
     case T_CLASS:
@@ -2514,10 +2515,12 @@ void f_sizeof(void) {
       free_buffer(sp->u.buf);
       break;
 #endif
-    case T_STRING:
-      i = SVALUE_STRLEN(sp);
+    case T_STRING: {
+      auto success = utf8_codepoints((const uint8_t*)sp->u.string, &i);
+      DEBUG_CHECK(!success, "Invalid UTF8 string!");
       free_string_svalue(sp);
       break;
+    }
     default:
       i = 0;
       free_svalue(sp, "f_sizeof");

@@ -1,6 +1,7 @@
 #ifndef LPC_SVALUE_H
 #define LPC_SVALUE_H
 
+#include <unicode/uchar.h>
 /* It is usually better to include "lpc_incl.h" instead of including this
  directly */
 #include "vm/internal/base/number.h"
@@ -9,10 +10,11 @@ typedef struct {
   unsigned short ref;
 } refed_t;
 
+typedef const char* LPC_STRING;
 union u {
   LPC_INT number;
   LPC_FLOAT real;
-  const char *string;
+  LPC_STRING string;
 
   refed_t *refed; /* any of the block below */
 
