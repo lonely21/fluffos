@@ -1374,8 +1374,8 @@ static int get_text_block(char *term) {
         len = 0;
       }
       // Remove trailing CR
-      if (text_line[curchunk][len-1] == '\r') {
-        text_line[curchunk][len-1] = '\0';
+      if (text_line[curchunk][len - 1] == '\r') {
+        text_line[curchunk][len - 1] = '\0';
         len = len - 1;
       }
       /*
@@ -2358,7 +2358,7 @@ int yylex() {
           if (rc > 0) {
             int n;
 
-            if(!utf8_validate((const uint8_t *) outp)) {
+            if (!utf8_validate((const uint8_t *)outp)) {
               lexerror("Bad UTF-8 string in string block");
               return LEX_EOF;
             }
@@ -2394,7 +2394,7 @@ int yylex() {
 
             case '"':
               *to++ = 0;
-              if(!utf8_validate(scr_tail + 1)) {
+              if (!utf8_validate(scr_tail + 1)) {
                 lexerror("Invalid UTF8 string");
                 return LEX_EOF;
               }
@@ -2521,7 +2521,7 @@ int yylex() {
               res = scratch_large_alloc((yyp - yytext) + (to - scr_tail) - 1);
               strncpy(res, reinterpret_cast<char *>(scr_tail + 1), (to - scr_tail) - 1);
               strcpy(res + (to - scr_tail) - 1, yytext);
-              if(!utf8_validate((const uint8_t *) res)) {
+              if (!utf8_validate((const uint8_t *)res)) {
                 lexerror("Invalid UTF8 string");
                 scratch_free(res);
                 return LEX_EOF;
@@ -2634,7 +2634,7 @@ int yylex() {
           strncpy(res, reinterpret_cast<char *>(scr_tail + 1), (to - scr_tail) - 1);
           strcpy(res + (to - scr_tail) - 1, yytext);
           // Validate UTF8
-          if(!utf8_validate((const uint8_t *) res)) {
+          if (!utf8_validate((const uint8_t *)res)) {
             lexerror("Invalid UTF8 string");
             scratch_free(res);
             return LEX_EOF;

@@ -10,7 +10,7 @@ typedef struct {
   unsigned short ref;
 } refed_t;
 
-typedef const char* LPC_STRING;
+typedef const char *LPC_STRING;
 union u {
   LPC_INT number;
   LPC_FLOAT real;

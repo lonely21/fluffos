@@ -17,7 +17,6 @@
 #include "packages/ops/ops.h"       // FIXME
 #include <unicode/utf8.h>
 
-
 int call_origin = 0;
 error_context_t *current_error_context = nullptr;
 
@@ -521,8 +520,8 @@ refed_t *lv_owner;
 
 // LVALUE points to an character(codepoint) in string
 static struct lvalue_char {
-    int32_t offset;
-    svalue_t *owner;
+  int32_t offset;
+  svalue_t *owner;
 } global_lvalue_char;
 static svalue_t global_lvalue_char_sv = {T_LVALUE_CHAR};
 
@@ -906,9 +905,10 @@ void copy_lvalue_range(svalue_t *from) {
   }
 }
 
-void assign_lvalue_char(auto&& func) {
+void assign_lvalue_char(auto &&func) {
   {
-    UChar32 c = u8_at((const uint8_t*) global_lvalue_char.owner->u.string, global_lvalue_char.offset);
+    UChar32 c =
+        u8_at((const uint8_t *)global_lvalue_char.owner->u.string, global_lvalue_char.offset);
     if (c < 0) {
       error("Invalid string index.\n");
     }
@@ -924,12 +924,10 @@ void assign_lvalue_char(auto&& func) {
     if (!new_len) {
       error("Strings cannot contain invalid utf8 codepoint.\n");
     }
-    auto res = new_string(SVALUE_STRLEN(global_lvalue_char.owner) - old_len + new_len, "assign_lvalue_char");
-    u8_copy_and_replace_char_at(
-      (const uint8_t*) global_lvalue_char.owner->u.string,
-      (uint8_t *) res,
-      global_lvalue_char.offset,
-      c);
+    auto res = new_string(SVALUE_STRLEN(global_lvalue_char.owner) - old_len + new_len,
+                          "assign_lvalue_char");
+    u8_copy_and_replace_char_at((const uint8_t *)global_lvalue_char.owner->u.string, (uint8_t *)res,
+                                global_lvalue_char.offset, c);
 
     free_string_svalue(global_lvalue_char.owner);
     global_lvalue_char.owner->u.string = res;
@@ -1149,10 +1147,10 @@ void pop_control_stack() {
   DEBUG_CHECK(csp == (control_stack - 1), "Popped out of the control stack\n");
 #ifdef ENABLE_DTRACE
   if ((csp->framekind & FRAME_MASK) == FRAME_FUNCTION) {
-    if(FLUFFOS_LPC_RETURN_ENABLED()) {
+    if (FLUFFOS_LPC_RETURN_ENABLED()) {
       FLUFFOS_LPC_RETURN(current_object->obname,
-        current_prog->function_table[csp->fr.table_index].funcname,
-        current_prog->filename);
+                         current_prog->function_table[csp->fr.table_index].funcname,
+                         current_prog->filename);
     }
   }
 #endif
@@ -1425,9 +1423,9 @@ function_t *setup_new_frame(int findex) {
     }
   }
 #ifdef ENABLE_DTRACE
-  if(FLUFFOS_LPC_ENTRY_ENABLED()) {
-    FLUFFOS_LPC_ENTRY(current_object->obname,
-      current_prog->function_table[findex].funcname, current_prog->filename);
+  if (FLUFFOS_LPC_ENTRY_ENABLED()) {
+    FLUFFOS_LPC_ENTRY(current_object->obname, current_prog->function_table[findex].funcname,
+                      current_prog->filename);
   }
 #endif
   return &current_prog->function_table[findex];
@@ -1484,10 +1482,9 @@ function_t *setup_inherited_frame(int findex) {
     }
   }
 #ifdef ENABLE_DTRACE
-  if(FLUFFOS_LPC_ENTRY_ENABLED()){
-    FLUFFOS_LPC_ENTRY(csp->ob->obname,
-      current_prog->function_table[findex].funcname,
-      current_prog->filename);
+  if (FLUFFOS_LPC_ENTRY_ENABLED()) {
+    FLUFFOS_LPC_ENTRY(csp->ob->obname, current_prog->function_table[findex].funcname,
+                      current_prog->filename);
   }
 #endif
   return &current_prog->function_table[findex];
@@ -1947,8 +1944,7 @@ void eval_instruction(char *p) {
         } else {
           pc += 2;
         }
-      }
-        break;
+      } break;
       case F_LOCAL_LVALUE:
         STACK_INC;
         sp->type = T_LVALUE;
@@ -2041,11 +2037,11 @@ void eval_instruction(char *p) {
         break;
       }
       case F_NUMBER:
-      LOAD_INT(i, pc);
+        LOAD_INT(i, pc);
         push_number(i);
         break;
       case F_REAL:
-      LOAD_FLOAT(real, pc);
+        LOAD_FLOAT(real, pc);
         push_real(real);
         break;
       case F_BYTE:
@@ -2071,11 +2067,11 @@ void eval_instruction(char *p) {
         break;
 #endif
       case F_BRANCH: /* relative offset */
-      COPY_SHORT(&offset, pc);
+        COPY_SHORT(&offset, pc);
         pc += offset;
         break;
       case F_BBRANCH: /* relative offset */
-      COPY_SHORT(&offset, pc);
+        COPY_SHORT(&offset, pc);
         pc -= offset;
         break;
       case F_BRANCH_NE:
@@ -2434,8 +2430,8 @@ void eval_instruction(char *p) {
               /* both sides are numbers, no freeing required */
             } else {
               error(
-                "Left hand side of += is a number (or zero); right side is "
-                "not a number.\n");
+                  "Left hand side of += is a number (or zero); right side is "
+                  "not a number.\n");
             }
             break;
           case T_REAL:
@@ -2447,8 +2443,8 @@ void eval_instruction(char *p) {
               /* both sides are numerics, no freeing required */
             } else {
               error(
-                "Left hand side of += is a number (or zero); right side is "
-                "not a number.\n");
+                  "Left hand side of += is a number (or zero); right side is "
+                  "not a number.\n");
             }
             break;
 #ifndef NO_BUFFER_TYPE
@@ -2497,8 +2493,7 @@ void eval_instruction(char *p) {
               error("Strings cannot contain 0 bytes.\n");
             }
             *global_lvalue_byte.u.lvalue_byte = c;
-          }
-            break;
+          } break;
           default:
             bad_arg(1, instruction);
         }
@@ -2551,7 +2546,7 @@ void eval_instruction(char *p) {
         } else if (sp->type == T_STRING) {
           STACK_INC;
           sp->type = T_NUMBER;
-          sp->u.lvalue_byte = (unsigned char *) ((sp - 1)->u.string);
+          sp->u.lvalue_byte = (unsigned char *)((sp - 1)->u.string);
           sp->subtype = SVALUE_STRLEN(sp - 1);
         } else {
           CHECK_TYPES(sp, T_ARRAY, 2, F_FOREACH);
@@ -2717,15 +2712,13 @@ void eval_instruction(char *p) {
 
         cl = allocate_class(&current_prog->classes[EXTRACT_UCHAR(pc++)], 1);
         push_refed_class(cl);
-      }
-        break;
+      } break;
       case F_NEW_EMPTY_CLASS: {
         array_t *cl;
 
         cl = allocate_class(&current_prog->classes[EXTRACT_UCHAR(pc++)], 0);
         push_refed_class(cl);
-      }
-        break;
+      } break;
       case F_AGGREGATE: {
         array_t *v;
 
@@ -2740,8 +2733,7 @@ void eval_instruction(char *p) {
           v->item[offset] = *sp--;
         }
         push_refed_array(v);
-      }
-        break;
+      } break;
       case F_AGGREGATE_ASSOC: {
         mapping_t *m;
 
@@ -2765,8 +2757,7 @@ void eval_instruction(char *p) {
               error("Illegal rhs to byte lvalue\n");
             }
             *global_lvalue_byte.u.lvalue_byte = (sp - 1)->u.number;
-          }
-            break;
+          } break;
           case T_LVALUE_RANGE:
             assign_lvalue_range(sp - 1);
             break;
@@ -3055,7 +3046,7 @@ void eval_instruction(char *p) {
             sp->u.number = ++*global_lvalue_byte.u.lvalue_byte;
             break;
           case T_LVALUE_CHAR:
-            assign_lvalue_char([](UChar32 c) { return ++c;});
+            assign_lvalue_char([](UChar32 c) { return ++c; });
             break;
           default:
             error("++ of non-numeric argument\n");
@@ -3137,12 +3128,12 @@ void eval_instruction(char *p) {
             }
             i = (sp - 1)->u.number;
             size_t codepoints;
-            auto success = utf8_codepoints((const uint8_t*)sp->u.string, &codepoints);
+            auto success = utf8_codepoints((const uint8_t *)sp->u.string, &codepoints);
             DEBUG_CHECK(!success, "Bad UTF-8 String.");
             if (i > codepoints || i < 0) {
               error("String index out of bounds.\n");
             }
-            UChar32 res = u8_at((const uint8_t*) sp->u.string, i);
+            UChar32 res = u8_at((const uint8_t *)sp->u.string, i);
             DEBUG_CHECK(res < 0, "f_idnex: U8_GET failed!");
             free_string_svalue(sp);
             (--sp)->u.number = res;
@@ -3201,13 +3192,13 @@ void eval_instruction(char *p) {
               error("Indexing a string with an illegal type.\n");
             }
             size_t count;
-            auto success = utf8_codepoints((const uint8_t*)sp->u.string, &count);
+            auto success = utf8_codepoints((const uint8_t *)sp->u.string, &count);
             DEBUG_CHECK(!success, "Invalid UTF8 string: f_rindex");
             i = count - (sp - 1)->u.number;
             if ((i > count) || (i < 0)) {
               error("String index out of bounds.\n");
             }
-            UChar32 c = u8_at((const uint8_t*)sp->u.string, i);
+            UChar32 c = u8_at((const uint8_t *)sp->u.string, i);
             free_string_svalue(sp);
             (--sp)->u.number = c;
             break;
@@ -3377,7 +3368,7 @@ void eval_instruction(char *p) {
             sp->u.number = (*global_lvalue_byte.u.lvalue_byte)--;
             break;
           case T_LVALUE_CHAR:
-            assign_lvalue_char([](UChar32 c) { return --c;});
+            assign_lvalue_char([](UChar32 c) { return --c; });
             break;
           default:
             error("-- of non-numeric argument\n");
@@ -3402,7 +3393,7 @@ void eval_instruction(char *p) {
             sp->subtype = 0;
             break;
           case T_LVALUE_CHAR:
-            assign_lvalue_char([](UChar32 c) { return c++;});
+            assign_lvalue_char([](UChar32 c) { return c++; });
             break;
           default:
             error("++ of non-numeric argument\n");
@@ -3738,26 +3729,25 @@ void eval_instruction(char *p) {
         (*efun_table[instruction - EFUN_BASE])();
 
         if (expected_stack != sp) {
-          fatal("Bad sp %p (should be %p) after calling efun '%s', num arg %d.\n",
-            sp, expected_stack,
-            instrs[instruction].name, num_arg);
+          fatal("Bad sp %p (should be %p) after calling efun '%s', num arg %d.\n", sp,
+                expected_stack, instrs[instruction].name, num_arg);
         }
 #endif
     } /* switch (instruction) */
     DEBUG_CHECK2(sp < fp + csp->num_local_variables - 1,
-                 "Bad stack after evaluation. Instruction '%s' (%d) \n", instrs[instruction].name, instruction);
+                 "Bad stack after evaluation. Instruction '%s' (%d) \n", instrs[instruction].name,
+                 instruction);
 #ifdef DEBUG
     {
-        svalue_t* current_stack = sp;
-        while(current_stack >= fp) {
-            auto v = *current_stack--;
-            if (v.type == T_STRING) {
-                DEBUG_CHECK2(
-                        !utf8_validate((const uint8_t *)v.u.string),
-                        "Corrupted UTF8 string after evaluation. Instruction '%s' (%d)\n",
-                        instrs[instruction].name, instruction);
-            }
+      svalue_t *current_stack = sp;
+      while (current_stack >= fp) {
+        auto v = *current_stack--;
+        if (v.type == T_STRING) {
+          DEBUG_CHECK2(!utf8_validate((const uint8_t *)v.u.string),
+                       "Corrupted UTF8 string after evaluation. Instruction '%s' (%d)\n",
+                       instrs[instruction].name, instruction);
         }
+      }
     }
 #endif
   } /* while (1) */

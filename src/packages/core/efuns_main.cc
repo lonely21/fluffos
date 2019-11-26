@@ -2516,7 +2516,7 @@ void f_sizeof(void) {
       break;
 #endif
     case T_STRING: {
-      auto success = utf8_codepoints((const uint8_t*)sp->u.string, &i);
+      auto success = utf8_codepoints((const uint8_t *)sp->u.string, &i);
       DEBUG_CHECK(!success, "Invalid UTF8 string!");
       free_string_svalue(sp);
       break;
@@ -3392,18 +3392,16 @@ void f_crypt(void) {
 
   if (sp->type == T_STRING) {
     // Support $1$, $2a$ (a,x,y), $5$, $6$
-    if(sp->u.string[0] == '$') {
+    if (sp->u.string[0] == '$') {
       // $2?$
-      if (SVALUE_STRLEN(sp) >= 4 &&
-          sp->u.string[1] == '2' &&
+      if (SVALUE_STRLEN(sp) >= 4 && sp->u.string[1] == '2' &&
           (sp->u.string[2] == 'a' || sp->u.string[2] == 'x' || sp->u.string[2] == 'y') &&
           sp->u.string[3] == '$') {
         saltp = sp->u.string;
       } else {
         if (SVALUE_STRLEN(sp) >= 3 &&
-            (sp->u.string[1] == '1' ||
-             sp->u.string[1] == '5' ||
-             sp->u.string[1] == '6') && sp->u.string[2] == '$') {
+            (sp->u.string[1] == '1' || sp->u.string[1] == '5' || sp->u.string[1] == '6') &&
+            sp->u.string[2] == '$') {
           saltp = sp->u.string;
         }
       }
@@ -3423,9 +3421,8 @@ void f_crypt(void) {
     saltp = salt;
   }
 
-  auto result = crypt((sp-1)->u.string, saltp);
-  if(result == nullptr ||
-     (result && result[0] == '*')) {
+  auto result = crypt((sp - 1)->u.string, saltp);
+  if (result == nullptr || (result && result[0] == '*')) {
     error("Error in crypt(), check your salt");
     return;
   }
