@@ -208,20 +208,46 @@ void do_tests() {
   ASSERT_EQ(688, sizeof(text7));
   // INDEX
   ASSERT_EQ(22909, "好"[0]);
-  ASSERT_EQ(8750, text1[0]);
-  ASSERT_EQ(8469, text2[10]);
-  ASSERT_EQ("∮"[0], text1[0]);
-  // INDEX_LVALUE
-  /*tmp = text1;
-  tmp[0] = 8750;
-  ASSERT_EQ(text1, tmp);
+  ASSERT_EQ("⋅"[0], text1[3]);
+  ASSERT_EQ("Q"[0], text1[9]);
+  ASSERT_EQ("ð"[0], text3[0]);
 
-  tmp[0] = text1[0];
-  ASSERT_EQ(text1, tmp);
-  tmp[0] = 22909;
+  // RINDEX
+  ASSERT_EQ("⍕"[0], text4[<2]);
+  ASSERT_EQ("ɛ"[0], text3[<19]);
+
+  // INDEX_LVALUE INC
+  tmp = "白日依山尽";
+  ASSERT_EQ(30333, tmp[0]);
+  ASSERT_EQ(26085, tmp[1]);
+  ASSERT_EQ(20381, tmp[2]);
+  ASSERT_EQ(23665, tmp[3]);
+  ASSERT_EQ(23613, tmp[4]);
+  tmp[2]++;
+  ++tmp[2];
+  ASSERT_EQ(30333, tmp[0]);
+  ASSERT_EQ(26085, tmp[1]);
+  ASSERT_EQ(20383, tmp[2]);
+  ASSERT_EQ(23665, tmp[3]);
+  ASSERT_EQ(23613, tmp[4]);
+  ASSERT_EQ("白日侟山尽", tmp);
+  tmp[2]--;
+  --tmp[2];
+  ASSERT_EQ("白日依山尽", tmp);
+
+  // INDEX_LVALUE ASSIGN
+  tmp = text3;
+  ASSERT_EQ(text3, tmp);
+  ASSERT_EQ(230, tmp[9]);
+  ASSERT_EQ(601, tmp[11]);
+  tmp[10] = 30333;
+  ASSERT_NE(text3, tmp);
+  ASSERT_EQ(230, tmp[9]);
+  ASSERT_EQ(30333, tmp[10]);
+  ASSERT_EQ(601, tmp[11]);
 
   // range operator, based on codepoint
-  ASSERT_EQ("", text3[0..1]);
+  /*ASSERT_EQ("", text3[0..1]);
   ASSERT_EQ("", text6[5..<10]);*/
   // upper_case
 

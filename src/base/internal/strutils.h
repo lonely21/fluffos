@@ -5,6 +5,7 @@
 #include <functional>
 #include <cctype>
 #include <locale>
+#include <unicode/utf8.h>
 
 namespace {
 
@@ -32,6 +33,30 @@ inline bool starts_with(const std::string &big_str, const std::string &small_str
 inline bool ends_with(const std::string &str, const std::string &ending) {
   if (str.length() < ending.length()) return false;
   return str.compare(str.length() - ending.length(), ending.length(), ending) == 0;
+}
+
+// Return the character at given index of str
+inline UChar32 u8_at(const uint8_t* str, int32_t index) {
+  int32_t offset = 0;
+  U8_FWD_N(str, offset, -1, index);
+
+  UChar32 c = 0;
+  U8_NEXT(str, offset, -1, c);
+  return c;
+}
+
+// Copy string src to dest, replacing character at index to c. Assuming dst is already allocated.
+inline void u8_copy_and_replace_char_at(const uint8_t* src, uint8_t* dst, int32_t index, UChar32 c) {
+  int32_t src_offset = 0;
+  int32_t dst_offset = 0;
+
+  U8_FWD_N(src, src_offset, -1, index);
+  memcpy(dst, src, src_offset);
+  dst_offset = src_offset;
+  U8_APPEND_UNSAFE(dst, dst_offset, c);
+
+  U8_FWD_1_UNSAFE(src, src_offset);
+  strcpy((char *)dst + dst_offset, (const char *)src + src_offset);
 }
 
 }  // namespace
