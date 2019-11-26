@@ -3694,8 +3694,22 @@ void eval_instruction(char *p) {
         }
 #endif
     } /* switch (instruction) */
-    DEBUG_CHECK1(sp < fp + csp->num_local_variables - 1,
-                 "Bad stack after evaluation. Instruction %d\n", instruction);
+    DEBUG_CHECK2(sp < fp + csp->num_local_variables - 1,
+                 "Bad stack after evaluation. Instruction '%s' (%d) \n", instrs[instruction].name, instruction);
+#ifdef DEBUG
+    {
+        svalue_t* current_stack = sp;
+        while(current_stack >= fp) {
+            auto v = *current_stack--;
+            if (v.type == T_STRING) {
+                DEBUG_CHECK2(
+                        !utf8_validate((const uint8_t *)v.u.string),
+                        "Corrupted UTF8 string after evaluation. Instruction '%s' (%d)\n",
+                        instrs[instruction].name, instruction);
+            }
+        }
+    }
+#endif
   } /* while (1) */
 }
 

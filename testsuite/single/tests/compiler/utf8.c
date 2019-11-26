@@ -196,6 +196,7 @@ Box drawing alignment tests:                                          █
 UTF8;
 
 void do_tests() {
+  string tmp;
   // strlen
   ASSERT_EQ(74, strlen(text1));
   ASSERT_EQ(92, strlen(text2));
@@ -205,13 +206,23 @@ void do_tests() {
   ASSERT_EQ(4901, sizeof(text6));
   ASSERT_EQ(strlen(text6), sizeof(text6));
   ASSERT_EQ(688, sizeof(text7));
-  // range operator, based on codepoint
+  // INDEX
   ASSERT_EQ(22909, "好"[0]);
   ASSERT_EQ(8750, text1[0]);
-  ASSERT_EQ("∮"[0], text1[0]);
   ASSERT_EQ(8469, text2[10]);
-  /*ASSERT_EQ("", text1[0..1]);
-  ASSERT_EQ("", text1[5..<10]);*/
+  ASSERT_EQ("∮"[0], text1[0]);
+  // INDEX_LVALUE
+  /*tmp = text1;
+  tmp[0] = 8750;
+  ASSERT_EQ(text1, tmp);
+
+  tmp[0] = text1[0];
+  ASSERT_EQ(text1, tmp);
+  tmp[0] = 22909;
+
+  // range operator, based on codepoint
+  ASSERT_EQ("", text3[0..1]);
+  ASSERT_EQ("", text6[5..<10]);*/
   // upper_case
 
   // lower_case
