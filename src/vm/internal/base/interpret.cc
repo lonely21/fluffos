@@ -206,7 +206,7 @@ const char *type_name(int c) {
       return "*lvalue_byte*";
     case T_LVALUE_RANGE:
       return "*lvalue_range*";
-    case T_LVALUE_CHAR:
+    case T_LVALUE_CODEPOINT:
       return "*lvalue_char*";
     case T_ERROR_HANDLER:
       return "*error_handler*";
@@ -519,11 +519,11 @@ int lv_owner_type;
 refed_t *lv_owner;
 
 // LVALUE points to an character(codepoint) in string
-static struct lvalue_char {
+static struct {
   int32_t offset;
   svalue_t *owner;
-} global_lvalue_char;
-static svalue_t global_lvalue_char_sv = {T_LVALUE_CHAR};
+} global_lvalue_codepoint;
+static svalue_t global_lvalue_codepoint_sv = {T_LVALUE_CODEPOINT};
 
 /*
  * Compute the address of an array element.
@@ -569,9 +569,9 @@ void push_indexed_lvalue(int reverse) {
         }
         unlink_string_svalue(lv);
         sp->type = T_LVALUE;
-        sp->u.lvalue = &global_lvalue_char_sv;
-        global_lvalue_char.offset = ind;
-        global_lvalue_char.owner = lv;
+        sp->u.lvalue = &global_lvalue_codepoint_sv;
+        global_lvalue_codepoint.offset = ind;
+        global_lvalue_codepoint.owner = lv;
 #ifdef REF_RESERVED_WORD
         lv_owner_type = T_STRING;
         lv_owner = (refed_t *)lv->u.string;
@@ -905,10 +905,11 @@ void copy_lvalue_range(svalue_t *from) {
   }
 }
 
-void assign_lvalue_char(auto &&func) {
+template <typename F>
+void assign_lvalue_char(F &&func) {
   {
-    UChar32 c =
-        u8_at((const uint8_t *)global_lvalue_char.owner->u.string, global_lvalue_char.offset);
+    UChar32 c = u8_codepoint_at((const uint8_t *)global_lvalue_codepoint.owner->u.string,
+                                global_lvalue_codepoint.offset);
     if (c < 0) {
       error("Invalid string index.\n");
     }
@@ -924,13 +925,13 @@ void assign_lvalue_char(auto &&func) {
     if (!new_len) {
       error("Strings cannot contain invalid utf8 codepoint.\n");
     }
-    auto res = new_string(SVALUE_STRLEN(global_lvalue_char.owner) - old_len + new_len,
+    auto res = new_string(SVALUE_STRLEN(global_lvalue_codepoint.owner) - old_len + new_len,
                           "assign_lvalue_char");
-    u8_copy_and_replace_char_at((const uint8_t *)global_lvalue_char.owner->u.string, (uint8_t *)res,
-                                global_lvalue_char.offset, c);
+    u8_copy_and_replace_codepoint_at((const uint8_t *)global_lvalue_codepoint.owner->u.string,
+                                     (uint8_t *)res, global_lvalue_codepoint.offset, c);
 
-    free_string_svalue(global_lvalue_char.owner);
-    global_lvalue_char.owner->u.string = res;
+    free_string_svalue(global_lvalue_codepoint.owner);
+    global_lvalue_codepoint.owner->u.string = res;
   }
 }
 
@@ -1919,7 +1920,7 @@ void eval_instruction(char *p) {
           case T_LVALUE_BYTE:
             ++*global_lvalue_byte.u.lvalue_byte;
             break;
-          case T_LVALUE_CHAR: {
+          case T_LVALUE_CODEPOINT: {
             assign_lvalue_char([](UChar32 c) { return c + 1; });
             break;
           }
@@ -2761,7 +2762,7 @@ void eval_instruction(char *p) {
           case T_LVALUE_RANGE:
             assign_lvalue_range(sp - 1);
             break;
-          case T_LVALUE_CHAR: {
+          case T_LVALUE_CODEPOINT: {
             if ((sp - 1)->type != T_NUMBER) {
               error("Illegal rhs to char lvalue\n");
             }
@@ -2808,7 +2809,7 @@ void eval_instruction(char *p) {
               copy_lvalue_range(sp--);
               break;
             }
-            case T_LVALUE_CHAR: {
+            case T_LVALUE_CODEPOINT: {
               if (sp->type != T_NUMBER) {
                 error("Illegal rhs to byte lvalue\n");
               }
@@ -2947,7 +2948,7 @@ void eval_instruction(char *p) {
           case T_LVALUE_BYTE:
             --(*global_lvalue_byte.u.lvalue_byte);
             break;
-          case T_LVALUE_CHAR:
+          case T_LVALUE_CODEPOINT:
             assign_lvalue_char([](UChar32 c) { return c - 1; });
             break;
           default:
@@ -3045,7 +3046,7 @@ void eval_instruction(char *p) {
             sp->subtype = 0;
             sp->u.number = ++*global_lvalue_byte.u.lvalue_byte;
             break;
-          case T_LVALUE_CHAR:
+          case T_LVALUE_CODEPOINT:
             assign_lvalue_char([](UChar32 c) { return ++c; });
             break;
           default:
@@ -3133,7 +3134,7 @@ void eval_instruction(char *p) {
             if (i > codepoints || i < 0) {
               error("String index out of bounds.\n");
             }
-            UChar32 res = u8_at((const uint8_t *)sp->u.string, i);
+            UChar32 res = u8_codepoint_at((const uint8_t *)sp->u.string, i);
             DEBUG_CHECK(res < 0, "f_idnex: U8_GET failed!");
             free_string_svalue(sp);
             (--sp)->u.number = res;
@@ -3198,7 +3199,7 @@ void eval_instruction(char *p) {
             if ((i > count) || (i < 0)) {
               error("String index out of bounds.\n");
             }
-            UChar32 c = u8_at((const uint8_t *)sp->u.string, i);
+            UChar32 c = u8_codepoint_at((const uint8_t *)sp->u.string, i);
             free_string_svalue(sp);
             (--sp)->u.number = c;
             break;
@@ -3367,7 +3368,7 @@ void eval_instruction(char *p) {
             sp->subtype = 0;
             sp->u.number = (*global_lvalue_byte.u.lvalue_byte)--;
             break;
-          case T_LVALUE_CHAR:
+          case T_LVALUE_CODEPOINT:
             assign_lvalue_char([](UChar32 c) { return --c; });
             break;
           default:
@@ -3392,7 +3393,7 @@ void eval_instruction(char *p) {
             sp->u.number = (*global_lvalue_byte.u.lvalue_byte)++;
             sp->subtype = 0;
             break;
-          case T_LVALUE_CHAR:
+          case T_LVALUE_CODEPOINT:
             assign_lvalue_char([](UChar32 c) { return c++; });
             break;
           default:

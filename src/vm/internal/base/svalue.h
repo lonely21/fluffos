@@ -73,7 +73,7 @@ struct ref_t {
 #define T_ERROR_HANDLER 0x1000
 #define T_FREED 0x2000
 #define T_REF 0x4000
-#define T_LVALUE_CHAR 0x8000
+#define T_LVALUE_CODEPOINT 0x8000 /* UTF8 codepoint */
 
 #define TYPE_MOD_ARRAY 0x8000 /* Pointer to a basic type */
 /* Note, the following restricts class_num to < 0x40 or 64   */
