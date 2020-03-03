@@ -43,6 +43,12 @@ buffer_t *allocate_buffer(int size) {
   return buf;
 }
 
+void copy_and_push_as_buffer(const char *p) {
+  auto buf = allocate_buffer(strlen(p));
+  memcpy(buf->item, p, buf->size);
+  push_refed_buffer(buf);
+}
+
 int write_buffer(buffer_t *buf, int start, const char *str, int theLength) {
   int size;
 
