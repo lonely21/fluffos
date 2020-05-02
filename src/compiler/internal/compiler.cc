@@ -6,6 +6,7 @@
 #include <cstdio>   // for sprintf
 #include <cctype>   // for isspace
 
+#include "base/internal/tracing.h"
 #include "efuns.autogen.h"          // FIXME
 #include "applies_table.autogen.h"  // FIXME:
 
@@ -126,13 +127,15 @@ char *get_two_types(char *where, char *end, int type1, int type2) {
 }
 
 void init_locals() {
+  auto max_local_variables = CFG_INT(__MAX_LOCAL_VARIABLES__);
+
   type_of_locals = reinterpret_cast<unsigned short *>(
-      DCALLOC(CFG_MAX_LOCAL_VARIABLES, sizeof(unsigned short), TAG_LOCALS, "init_locals:1"));
+      DCALLOC(max_local_variables, sizeof(unsigned short), TAG_LOCALS, "init_locals:1"));
   locals = reinterpret_cast<local_info_t *>(
-      DCALLOC(CFG_MAX_LOCAL_VARIABLES, sizeof(local_info_t), TAG_LOCALS, "init_locals:2"));
+      DCALLOC(max_local_variables, sizeof(local_info_t), TAG_LOCALS, "init_locals:2"));
   type_of_locals_ptr = type_of_locals;
   locals_ptr = locals;
-  locals_size = type_of_locals_size = CFG_MAX_LOCAL_VARIABLES;
+  locals_size = type_of_locals_size = max_local_variables;
   current_number_of_locals = max_num_locals = 0;
 }
 
@@ -220,7 +223,9 @@ void pop_n_locals(int num) {
 }
 
 int add_local_name(const char *str, int type) {
-  if (max_num_locals == CFG_MAX_LOCAL_VARIABLES) {
+  auto max_local_variables = CFG_INT(__MAX_LOCAL_VARIABLES__);
+
+  if (max_num_locals == max_local_variables) {
     yyerror("Too many local variables");
     return 0;
   } else {
@@ -238,9 +243,11 @@ int add_local_name(const char *str, int type) {
 }
 
 void reallocate_locals() {
+  auto max_local_variables = CFG_INT(__MAX_LOCAL_VARIABLES__);
+
   int offset;
   offset = type_of_locals_ptr - type_of_locals;
-  type_of_locals = RESIZE(type_of_locals, type_of_locals_size += CFG_MAX_LOCAL_VARIABLES,
+  type_of_locals = RESIZE(type_of_locals, type_of_locals_size += max_local_variables,
                           unsigned short, TAG_LOCALS, "reallocate_locals:1");
   type_of_locals_ptr = type_of_locals + offset;
   offset = locals_ptr - locals;
@@ -2131,10 +2138,12 @@ program_t *compile_file(int f, char *name) {
   }
   guard = 1;
 
-  prolog(f, name);
-  func_present = 0;
-  yyparse();
-  prog = epilog();
+  {
+    prolog(f, name);
+    func_present = 0;
+    yyparse();
+    prog = epilog();
+  }
 
   guard = 0;
   return prog;

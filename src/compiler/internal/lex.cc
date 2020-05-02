@@ -16,9 +16,6 @@
 #include "base/std.h"
 
 #include "lex.h"
-#include "vm/internal/base/array.h"
-#include "vm/internal/base/interpret.h"
-#include "vm/internal/master.h"
 
 #include <cstdio>    // for EOF
 #include <fcntl.h>   // for O_RDONLY etc
@@ -29,6 +26,7 @@
 #include <algorithm>  // for std::sort
 #include <unicode/ustring.h>
 
+#include "vm/vm.h"
 #include "include/function.h"
 #include "efuns.autogen.h"
 #include "options.autogen.h"
@@ -780,7 +778,7 @@ static void lexerror(const char *s) {
 }
 
 static int skip_to(const char *token, const char *atoken) {
-  char b[20], *p;
+  char b[20] = {0}, *p;
   unsigned char c;
   char *yyp = outp, *startp;
   char *b_end = b + 19;
@@ -2988,9 +2986,26 @@ void add_predefines() {
 
   add_predefine("MUDOS", -1, "");
   add_predefine("FLUFFOS", -1, "");
+
+#define _STR_HELPER(x) #x
+#define _STR(x) _STR_HELPER(x)
+
 #ifdef PACKAGE_DB
   add_predefine("__PACKAGE_DB__", -1, "");
 #endif
+#ifdef USE_MYSQL
+  add_predefine("__USE_MYSQL__", -1, _STR(USE_MYSQL));
+#endif
+#ifdef USE_POSTGRES
+  add_predefine("__USE_POSTGRES__", -1, _STR(USE_POSTGRES));
+#endif
+#ifdef USE_SQLITE3
+  add_predefine("__USE_SQLITE3__", -1, _STR(USE_SQLITE3));
+#endif
+#ifdef DEFAULT_DB
+  add_predefine("__DEFAULT_DB__", -1, _STR(DEFAULT_DB));
+#endif
+
   add_predefine("__GET_CHAR_IS_BUFFERED__", -1, "");
   // all support for DSLIB is built in
   add_predefine("__DSLIB__", -1, "");

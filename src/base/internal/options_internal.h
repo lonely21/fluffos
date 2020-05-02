@@ -85,12 +85,6 @@
  */
 #define MAX_SAVE_SVALUE_DEPTH 100
 
-/* Miscellaneous config options that should probably be in the runtime
- * config file.
- */
-/* MAX_LOCAL: maximum number of local variables allowed per LPC function */
-#define CFG_MAX_LOCAL_VARIABLES 100
-
 /* CFG_MAX_GLOBAL_VARIABLES: This value determines the maximum number of
  *   global variables per object.  The maximum value is 65536.
  */
@@ -123,7 +117,11 @@
  *   comm.c's add_message(). Instead of blindly making this value larger,
  *   your mudlib should be coded to not send huge strings to users.
  */
+<<<<<<< HEAD
 #define LARGEST_PRINTABLE_STRING 65536
+=======
+#define LARGEST_PRINTABLE_STRING 65535
+>>>>>>> dev2019
 
 /* PROFILE_FUNCTIONS: define this to be able to measure the CPU time used by
  *   all of the user-defined functions in each LPC object.  Note: defining
