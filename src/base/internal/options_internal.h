@@ -117,11 +117,7 @@
  *   comm.c's add_message(). Instead of blindly making this value larger,
  *   your mudlib should be coded to not send huge strings to users.
  */
-<<<<<<< HEAD
 #define LARGEST_PRINTABLE_STRING 65536
-=======
-#define LARGEST_PRINTABLE_STRING 65535
->>>>>>> dev2019
 
 /* PROFILE_FUNCTIONS: define this to be able to measure the CPU time used by
  *   all of the user-defined functions in each LPC object.  Note: defining
