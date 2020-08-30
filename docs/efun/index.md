@@ -623,6 +623,9 @@ title: EFUN
 </div>
 <div class='row'>
 <div class='col-sm-3'>
+<div><a href='interactive/telnet_nop.html'>telnet_nop</a></div>
+</div>
+<div class='col-sm-3'>
 <div><a href='interactive/this_interactive.html'>this_interactive</a></div>
 </div>
 <div class='col-sm-3'>
@@ -631,15 +634,14 @@ title: EFUN
 <div class='col-sm-3'>
 <div><a href='interactive/userp.html'>userp</a></div>
 </div>
-<div class='col-sm-3'>
-<div><a href='interactive/users.html'>users</a></div>
-</div>
 </div>
 <div class='row'>
 <div class='col-sm-3'>
+<div><a href='interactive/users.html'>users</a></div>
+</div>
+<div class='col-sm-3'>
 <div><a href='interactive/write.html'>write</a></div>
 </div>
-<div>&nbsp;</div>
 <div>&nbsp;</div>
 <div>&nbsp;</div>
 </div>
@@ -845,9 +847,11 @@ title: EFUN
 <div><a href='numbers/random.html'>random</a></div>
 </div>
 <div class='col-sm-3'>
+<div><a href='numbers/secure_random.html'>secure_random</a></div>
+</div>
+<div class='col-sm-3'>
 <div><a href='numbers/to_float.html'>to_float</a></div>
 </div>
-<div>&nbsp;</div>
 </div>
 </div>
 
@@ -1229,6 +1233,6 @@ title: EFUN
 
 
 
-This page is auto generated on 2020-04-12 22:40:55 PDT for [72164e82](https://github.com/fluffos/fluffos/tree/72164e82).
+This page is auto generated on 2020-08-25 20:35:07 PDT for [116ac9f1](https://github.com/fluffos/fluffos/tree/116ac9f1).
 
 

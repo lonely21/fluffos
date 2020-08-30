@@ -305,7 +305,7 @@ static object_t *load_virtual_object(const char *name, int clone) {
        * allow this.  Destruct the new object and raise an error.
        */
       destruct_object(new_ob);
-      error("Virtual object name duplicates an existing object name.\n");
+      error("Virtual object name duplicates an existing object name: '%s'.\n", name);
     }
     /* Make sure O_CLONE is NOT set */
     new_ob->flags &= ~O_CLONE;
@@ -346,6 +346,7 @@ static object_t *load_virtual_object(const char *name, int clone) {
   /* reassign uid */
   give_uid_to_object(new_ob);
 #endif
+  apply(APPLY_VIRTUAL_START, new_ob, 0, ORIGIN_DRIVER);
   return new_ob;
 }
 
@@ -1871,7 +1872,6 @@ void _error_handler(char *err) {
     catch_value.u.string = string_copy(err, "caught error");
 
     throw("error handler");
-    fatal("throw error failed");
   }
 
   if (num_error > 0) {
@@ -1880,8 +1880,8 @@ void _error_handler(char *err) {
     too_deep_error = max_eval_error = 0;
     if (current_error_context) {
       throw("error handler error");
-      fatal("throw error failed");
     }
+    fatal("Driver BUG: no error context.");
   }
 
   num_error++;
@@ -1926,7 +1926,7 @@ exit:
   if (current_error_context) {
     throw("error handler error2");
   }
-  throw("BUG: Impossible to get here.");
+  fatal("Driver BUG: no error context.");
 }
 
 [[noreturn]] void error_needs_free(char *s) {

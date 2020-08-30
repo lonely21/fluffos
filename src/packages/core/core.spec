@@ -62,6 +62,7 @@ int remove_call_out(int | void | string);
 int member_array(mixed, string | mixed *, void | int, void | int);
 int input_to(string | function, ...);
 int random(int);
+int secure_random(int);
 void defer(function);
 
 #ifndef NO_ENVIRONMENT
@@ -363,6 +364,8 @@ void act_mxp();
 void request_term_type();
 void start_request_term_type();
 void request_term_size(void | int);
+void telnet_nop();
+
 /* shutdown is at the end because it is only called once per boot cycle :) */
 void shutdown(void | int);
 // Get current LPC stacktrace
