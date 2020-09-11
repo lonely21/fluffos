@@ -374,7 +374,8 @@ void f_clear_bit(void) {
 
   auto max_bitfield_bits = CONFIG_INT(__MAX_BITFIELD_BITS__);
   if (sp->u.number > max_bitfield_bits) {
-    error("clear_bit() bit requested : %d > maximum bits: %d\n", sp->u.number, max_bitfield_bits);
+    error("clear_bit() bit requested : %" LPC_INT_FMTSTR_P " > maximum bits: %d\n", sp->u.number,
+          max_bitfield_bits);
   }
   bit = (sp--)->u.number;
   if (bit < 0) {
@@ -870,45 +871,6 @@ void f_interactive(void) {
 }
 #endif
 
-#ifdef F_HAS_MXP
-void f_has_mxp(void) {
-  int i = 0;
-
-  if (sp->u.ob->interactive) {
-    i = sp->u.ob->interactive->iflags & USING_MXP;
-    i = !!i;  // force 1 or 0
-  }
-  free_object(&sp->u.ob, "f_has_mxp");
-  put_number(i);
-}
-#endif
-
-#ifdef F_HAS_ZMP
-void f_has_zmp(void) {
-  int i = 0;
-
-  if (sp->u.ob->interactive) {
-    i = sp->u.ob->interactive->iflags & USING_ZMP;
-    i = !!i;  // force 1 or 0
-  }
-  free_object(&sp->u.ob, "f_has_zmp");
-  put_number(i);
-}
-#endif
-
-#ifdef F_HAS_GMCP
-void f_has_gmcp() {
-  int i = 0;
-
-  if (sp->u.ob->interactive) {
-    i = sp->u.ob->interactive->iflags & USING_GMCP;
-    i = !!i;  // force 1 or 0
-  }
-  free_object(&sp->u.ob, "f_has_gmcp");
-  put_number(i);
-}
-#endif
-
 #ifdef F_INTP
 void f_intp(void) {
   if (sp->type == T_NUMBER) {
@@ -1369,7 +1331,7 @@ void f_mud_status(void) {
     tot += print_call_out_usage(&ob, verbose);
   } else {
     /* !verbose */
-    outbuf_addv(&ob, "Sentences:\t\t\t%8d %8d\n", tot_alloc_sentence,
+    outbuf_addv(&ob, "Sentences:\t\t\t%8" PRIu64 " %8" PRIu64 "\n", tot_alloc_sentence,
                 tot_alloc_sentence * sizeof(sentence_t));
 #ifndef DEBUG
     outbuf_addv(&ob, "Objects:\t\t\t%8" PRIu64 " %8" PRIu64 "\n", tot_alloc_object,
@@ -1400,7 +1362,7 @@ void f_mud_status(void) {
 
   if (!verbose) {
     outbuf_add(&ob, "\t\t\t\t\t --------\n");
-    outbuf_addv(&ob, "Total:\t\t\t\t\t %8d\n", tot);
+    outbuf_addv(&ob, "Total:\t\t\t\t\t %8" PRIu64 "\n", tot);
   }
   outbuf_push(&ob);
 }
@@ -2313,7 +2275,8 @@ void f_set_bit(void) {
 
   auto max_bitfield_bits = CONFIG_INT(__MAX_BITFIELD_BITS__);
   if (sp->u.number > max_bitfield_bits) {
-    error("set_bit() bit requested: %d > maximum bits: %d\n", sp->u.number, max_bitfield_bits);
+    error("set_bit() bit requested: %" LPC_INT_FMTSTR_P " > maximum bits: %d\n", sp->u.number,
+          max_bitfield_bits);
   }
   bit = (sp--)->u.number;
   if (bit < 0) {
@@ -3446,12 +3409,12 @@ void f_oldcrypt(void) {
 /* FIXME: most of the #ifdefs here should be based on configure checks
    instead.  Same for rusage() */
 void f_localtime(void) {
-  struct tm *tm;
+  struct tm res = {};
   array_t *vec;
   time_t lt;
 
   lt = sp->u.number;
-  tm = localtime(&lt);
+  auto tm = localtime_r(&lt, &res);
 
   pop_stack();
 

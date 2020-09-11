@@ -4,16 +4,6 @@
 #include "config.h"
 
 #include <random>
-#ifdef TIME_WITH_SYS_TIME
-#include <sys/time.h>
-#include <time.h>
-#else
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#else
-#include <time.h>
-#endif
-#endif
 #include <unistd.h>
 
 // Returns a pseudo-random number in the range 0 .. n-1
@@ -56,7 +46,12 @@ int64_t secure_random_number(int64_t n) {
 time_t get_current_time() { return time(nullptr); /* Just use the old time() for now */ }
 
 const char *time_string(time_t t) {
+#ifndef __WIN32
+  char buf[255] = {};
+  const char *res = ctime_r(&t, buf);
+#else
   const char *res = ctime(&t);
+#endif
   if (!res) {
     res = "ctime failed";
   }
@@ -67,7 +62,7 @@ const char *time_string(time_t t) {
  * Get a microsecond clock sample.
  */
 void get_usec_clock(long *sec, long *usec) {
-  struct timeval tv;
+  struct timeval tv {};
 
   gettimeofday(&tv, nullptr);
   *sec = tv.tv_sec;
@@ -75,7 +70,7 @@ void get_usec_clock(long *sec, long *usec) {
 }
 
 long get_cpu_times(unsigned long *secs, unsigned long *usecs) {
-  struct rusage rus;
+  struct rusage rus {};
 
   if (getrusage(RUSAGE_SELF, &rus) < 0) {
     return 0;

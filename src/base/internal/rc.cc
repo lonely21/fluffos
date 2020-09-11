@@ -39,7 +39,7 @@ struct flagEntry {
   int maxValue = INT_MAX;
 };
 
-static const flagEntry kDefaultFlags[] = {
+const flagEntry kDefaultFlags[] = {
     {"time to clean up", __TIME_TO_CLEAN_UP__, 600},
     {"time to reset", __TIME_TO_RESET__, 900},
     {"time to swap", __TIME_TO_SWAP__, 300},
@@ -98,6 +98,10 @@ static const flagEntry kDefaultFlags[] = {
     {"call_out(0) nest level", __RC_CALL_OUT_ZERO_NEST_LEVEL__, 1000},
     {"trace lpc execution context", __RC_TRACE_CONTEXT__, 0},
     {"trace lpc instructions", __RC_TRACE_INSTR__, 0},
+    {"enable mxp", __RC_ENABLE_MXP__, 0},
+    {"enable gmcp", __RC_ENABLE_GMCP__, 0},
+    {"enable zmp", __RC_ENABLE_ZMP__, 0},
+    {"enable mssp", __RC_ENABLE_MSSP__, 1},
 };
 
 void config_init() {
@@ -128,10 +132,10 @@ void config_init() {
  -1 : warn if missing
  -2 : warn if found.
  */
-const static int kMustHave = 1;
-const static int kOptional = 0;
-const static int kWarnMissing = -1;
-const static int kWarnFound = -2;
+const int kMustHave = 1;
+const int kOptional = 0;
+const int kWarnMissing = -1;
+const int kWarnFound = -2;
 
 bool scan_config_line(const char *fmt, void *dest, int required) {
   /* zero the destination.  It is either a pointer to an int or a char
@@ -139,7 +143,7 @@ bool scan_config_line(const char *fmt, void *dest, int required) {
   *(reinterpret_cast<int *>(dest)) = 0;
 
   bool found = false;
-  for (const auto& line : config_lines) {
+  for (const auto &line : config_lines) {
     if (sscanf(line.c_str(), fmt, dest) == 1) {
       found = true;
       break;

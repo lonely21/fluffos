@@ -51,7 +51,7 @@ void f_debug_info(void) {
 #ifndef NO_LIGHT
       outbuf_addv(&out, "total light : %d\n", ob->total_light);
 #endif
-      outbuf_addv(&out, "time_of_ref : %d\n", ob->time_of_ref);
+      outbuf_addv(&out, "time_of_ref : %lld\n", ob->time_of_ref);
       outbuf_addv(&out, "ref         : %d\n", ob->ref);
 #ifdef DEBUGMALLOC_EXTENSIONS
       outbuf_addv(&out, "extra_ref   : %d\n", ob->extra_ref);
@@ -76,15 +76,16 @@ void f_debug_info(void) {
       outbuf_addv(&out, "Name /%s\n", ob->prog->filename);
       outbuf_addv(&out, "program size %d\n", ob->prog->program_size);
       outbuf_addv(
-          &out, "function flags table %d (%d) \n",
+          &out, "function flags table %d (%lu) \n",
           ob->prog->last_inherited + ob->prog->num_functions_defined,
           (ob->prog->last_inherited + ob->prog->num_functions_defined) * sizeof(unsigned short));
-      outbuf_addv(&out, "compiler function table %d (%d) \n", ob->prog->num_functions_defined,
+      outbuf_addv(&out, "compiler function table %u (%" PRIu64 ") \n",
+                  ob->prog->num_functions_defined,
                   ob->prog->num_functions_defined * sizeof(function_t));
       outbuf_addv(&out, "num strings %d\n", ob->prog->num_strings);
-      outbuf_addv(&out, "num vars %d (%d)\n", ob->prog->num_variables_defined,
+      outbuf_addv(&out, "num vars %u (%" PRIu64 ")\n", ob->prog->num_variables_defined,
                   ob->prog->num_variables_defined * (sizeof(char *) + sizeof(short)));
-      outbuf_addv(&out, "num inherits %d (%d)\n", ob->prog->num_inherited,
+      outbuf_addv(&out, "num inherits %d (%lu)\n", ob->prog->num_inherited,
                   ob->prog->num_inherited * sizeof(inherit_t));
       outbuf_addv(&out, "total size %d\n", ob->prog->total_size);
       break;
