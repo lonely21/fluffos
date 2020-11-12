@@ -105,8 +105,6 @@ int ws_ascii_callback(struct lws *wsi, enum lws_callback_reasons reason, void *u
           base, -1, EV_TIMEOUT,
           [](evutil_socket_t fd, short what, void *arg) {
             auto user = reinterpret_cast<interactive_t *>(arg);
-            // Force returning to line start, no line-feed.
-            ws_ascii_send(user->lws, "\r", 1);
             on_user_logon(user);
           },
           (void *)ip, nullptr);
@@ -170,8 +168,9 @@ int ws_ascii_callback(struct lws *wsi, enum lws_callback_reasons reason, void *u
       if (len <= 0) {
         break;
       }
-      // TODO: maybe need to handle fragment
-      if (!u8_validate((const uint8_t *)in, len)) {
+      // don't accept binary frame, we want client to always send valid utf8.
+      // lws handles the utf8 check for us.
+      if(lws_frame_is_binary(wsi)) {
         return -1;
       }
       auto ip = pss->user;

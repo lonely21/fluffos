@@ -9,7 +9,7 @@ option(PACKAGE_ARITH_OPERATOR "arith_operator package" ON)
 option(PACKAGE_ASYNC "async package" ON)
 option(PACKAGE_CHINESE "chinese package" ON)
 option(PACKAGE_COMPRESS "compress package" ON)
-option(PACKAGE_CONTRIB "compress package" ON)
+option(PACKAGE_CONTRIB "contrib package" ON)
 # PACKAGE CORE should always be on
 set(PACKAGE_CORE ON)
 option(PACKAGE_CRYPTO "crypto package" ON)
@@ -58,7 +58,7 @@ set(CMAKE_ENABLE_EXPORTS ON)
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
   foreach (lang C CXX)
-    set(CMAKE_${lang}_FLAGS_DEBUG "-O1 -g3")
+    set(CMAKE_${lang}_FLAGS_DEBUG "-O0 -g3")
     # include (minimal) debug information even for RELEASE build.
     set(CMAKE_${lang}_FLAGS_RELEASE "-O3 -DNDEBUG -g")
     set(CMAKE_${lang}_FLAGS_RELWITHDEBINFO "${CMAKE_${lang}_FLAGS_RELEASE}")
@@ -264,7 +264,7 @@ set(GENERATRED_SOURCE
 add_custom_command(
   OUTPUT "applies_table.autogen.cc" "applies_table.autogen.h"
   COMMAND "build_applies" "${CMAKE_CURRENT_SOURCE_DIR}"
-  DEPENDS "vm/internal/applies"
+  DEPENDS "vm/internal/applies" "build_applies"
 )
 
 add_custom_command(
@@ -409,7 +409,7 @@ foreach (PACKAGE ${FLUFFOS_PACKAGES})
 endforeach ()
 
 add_subdirectory(thirdparty/crypt)
-target_link_libraries(libdriver PUBLIC crypt)
+target_link_libraries(libdriver PRIVATE crypt)
 
 target_link_libraries(libdriver PUBLIC ${LIBWEBSOCKETS_LIBRARIES_STATIC})
 # Third party libraries

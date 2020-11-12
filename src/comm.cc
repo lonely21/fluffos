@@ -418,7 +418,7 @@ bool init_user_conn() {
       }
 
       if (bind(fd, res->ai_addr, res->ai_addrlen) == -1) {
-        debug_message("socket_create: bind error: %s.\n",
+        debug_message("init_user_conn: bind error: %s.\n",
                       evutil_socket_error_to_string(evutil_socket_geterror(fd)));
         evutil_closesocket(fd);
         evutil_freeaddrinfo(res);
@@ -1422,16 +1422,21 @@ int set_call(object_t *ob, sentence_t *sent, int flags) {
   if (ob == nullptr || sent == nullptr) {
     return (0);
   }
-  if (ob->interactive == nullptr || ob->interactive->input_to) {
+  auto ip = ob->interactive;
+  if (ip == nullptr || ip->input_to) {
     return (0);
   }
-  ob->interactive->input_to = sent;
-  ob->interactive->iflags |= (flags & (I_NOECHO | I_NOESC | I_SINGLE_CHAR));
+  ip->input_to = sent;
+  ip->iflags |= (flags & (I_NOECHO | I_NOESC | I_SINGLE_CHAR));
   if (flags & I_NOECHO) {
-    set_localecho(ob->interactive, false);
+    set_localecho(ip, false);
   }
   if (flags & I_SINGLE_CHAR) {
-    set_charmode(ob->interactive);
+    set_charmode(ip);
+  }
+  // Make sure client like mudlet flush previous outputs.
+  if (ip->telnet && (ip->iflags & USING_TELNET) && !(ip->iflags & SUPPRESS_GA)) {
+    telnet_iac(ip->telnet, TELNET_GA);
   }
   return (1);
 } /* set_call() */
@@ -1476,7 +1481,7 @@ static void print_prompt(interactive_t *ip) {
   }
   // Stavros: A lot of clients use this TELNET_GA to differentiate
   // prompts from other text
-  if ((ip->iflags & USING_TELNET) && !(ip->iflags & SUPPRESS_GA)) {
+  if (ip->telnet && (ip->iflags & USING_TELNET) && !(ip->iflags & SUPPRESS_GA)) {
     telnet_iac(ip->telnet, TELNET_GA);
   }
 } /* print_prompt() */

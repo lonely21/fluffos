@@ -7,7 +7,6 @@
 #ifndef _SOCKET_EFUNS_H_
 #define _SOCKET_EFUNS_H_
 
-#include <deque>
 #include <event2/util.h>
 
 enum socket_mode { MUD, STREAM, DATAGRAM, STREAM_BINARY, DATAGRAM_BINARY };
@@ -21,15 +20,15 @@ enum socket_state {
   STATE_DATA_XFER
 };
 
-#define BUF_SIZE 2048 /* max reliable packet size        */
+#define BUF_SIZE 8192 /* max reliable packet size        */
 #ifdef IPV6
 #define ADDR_BUF_SIZE INET6_ADDRSTRLEN
 #else
 #define ADDR_BUF_SIZE 64 /* max length of address string    */
 #endif
 struct lpc_socket_t {
-  int fd;
-  short flags;
+  evutil_socket_t fd;
+  unsigned short flags;
   enum socket_mode mode;
   enum socket_state state;
   struct sockaddr_storage l_addr;
