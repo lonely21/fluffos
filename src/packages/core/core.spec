@@ -51,6 +51,7 @@ void destruct(object default: F__THIS_OBJECT);
 string file_name(object default: F__THIS_OBJECT);
 string capitalize(string);
 string *explode(string, string);
+string *explode_reversible(string, string);
 mixed implode(mixed *, string | function, void | mixed);
 
 int call_out(string | function, int|float, ...);
@@ -201,11 +202,15 @@ int next_bit(string, int);
 string crypt(string, string | int);
 string oldcrypt(string, string | int);
 
-string ctime(int | void);
-int exec(object, object);
-mixed *localtime(int);
-string function_exists(string, void | object, void | int);
 
+int time();
+string strftime(string, int);
+int strptime(string, string);
+string ctime(int | void);
+mixed *localtime(int);
+
+int exec(object, object);
+string function_exists(string, void | object, void | int);
 object *objects(void | string | function);
 string query_host_name();
 int query_idle(object);
@@ -230,7 +235,6 @@ object query_shadowing(object);
 #endif
 mixed *sort_array(mixed *, int | string | function, ...);
 void throw(mixed);
-int time();
 mixed *unique_array(mixed *, string | function, void | mixed);
 mapping unique_mapping(mixed *, string | function, ...);
 string *deep_inherit_list(object default:F__THIS_OBJECT);
@@ -377,3 +381,6 @@ int strwidth(string);
 void trace_start(string, int default: 10);
 // stop to collect tracing data right away.
 void trace_end();
+
+// return highest resolution clock in nanoseconds
+int perf_counter_ns();

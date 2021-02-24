@@ -57,7 +57,7 @@ static int num_objects, num_people, me_object;
 static struct object_t *loaded_objects[MAX_NUM_OBJECTS];
 static int object_flags[MAX_NUM_OBJECTS];
 static bitvec_t my_objects;
-static char *my_string = nullptr;
+static const char *my_string = nullptr;
 static int num_literals = 0;
 static char **literals;
 static word_t words[MAX_WORDS_PER_LINE];
@@ -209,21 +209,21 @@ void parser_mark(parse_info_t *pinfo) {
     return;
   }
 
-  if(pinfo->num_ids) {
+  if (pinfo->num_ids) {
     DO_MARK(pinfo->ids, TAG_PARSER);
   }
   for (i = 0; i < pinfo->num_ids; i++) {
     EXTRA_REF(BLOCK(pinfo->ids[i]))++;
   }
 
-  if(pinfo->num_adjs) {
+  if (pinfo->num_adjs) {
     DO_MARK(pinfo->adjs, TAG_PARSER);
   }
   for (i = 0; i < pinfo->num_adjs; i++) {
     EXTRA_REF(BLOCK(pinfo->adjs[i]))++;
   }
 
-  if(pinfo->num_plurals) {
+  if (pinfo->num_plurals) {
     DO_MARK(pinfo->plurals, TAG_PARSER);
   }
   for (i = 0; i < pinfo->num_plurals; i++) {
@@ -358,7 +358,7 @@ static match_t *add_match(parse_state_t *state, int token, int start, int end) {
   return ret;
 }
 
-static int parse_copy_array(array_t *arr, char ***sarrp, const char* desc) {
+static int parse_copy_array(array_t *arr, char ***sarrp, const char *desc) {
   const char **table;
   char **table2;
   int j;
@@ -388,7 +388,7 @@ static int parse_copy_array(array_t *arr, char ***sarrp, const char* desc) {
 }
 
 static void add_special_word(const char *wrd, int kind, int arg) {
-  char *p = make_shared_string(wrd);
+  const char *p = make_shared_string(wrd);
   auto h = DO_HASH(p, SPECIAL_HASH_SIZE);
   auto *swp = (special_word_t *)DMALLOC(sizeof(special_word_t), TAG_PARSER, "add_special_word");
 
@@ -877,7 +877,8 @@ static void interrogate_object(object_t *ob) {
   DEBUG_PP(("[%s]", APPLY_PLURAL));
   ret = safe_apply(APPLY_PLURAL, ob, 0, ORIGIN_DRIVER);
   if (ret && ret->type == T_ARRAY) {
-    ob->pinfo->num_plurals = parse_copy_array(ret->u.arr, &ob->pinfo->plurals, __CURRENT_FILE_LINE__);
+    ob->pinfo->num_plurals =
+        parse_copy_array(ret->u.arr, &ob->pinfo->plurals, __CURRENT_FILE_LINE__);
   } else {
     ob->pinfo->num_plurals = 0;
   }
@@ -1477,7 +1478,7 @@ static void parse_obj(int tok, parse_state_t *state, int ordinal) {
   parse_state_t local_state;
   bitvec_t objects, save_obs, err_obs;
   int start = state->word_index;
-  char *str;
+  const char *str;
   hash_entry_t *hnode, *last_adj = nullptr;
   int ord_legal, singular_legal = 1, ord_seen = 0;
   long tmp, tmp2;
@@ -3071,7 +3072,8 @@ static void reset_error(void) {
 
 static void parse_recurse(char **iwords, char **ostart, char **oend) {
   char buf[1024];
-  char *p, *q;
+  char *p;
+  const char *q;
   char **iwp = iwords;
   int first = 1;
   int l, idx;
@@ -3087,7 +3089,7 @@ static void parse_recurse(char **iwords, char **ostart, char **oend) {
         words[num_words].type = 0;
         words[num_words].start = ostart[0];
         words[num_words].end = oend[iwp - iwords - 1];
-        words[num_words++].string = q;
+        words[num_words++].string = const_cast<char *>(q);
         idx = iwp - iwords;
         parse_recurse(iwp, ostart + idx, oend + idx);
         num_words--;

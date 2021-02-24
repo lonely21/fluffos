@@ -595,4 +595,25 @@ void do_tests() {
   // but not for multi and invalid codepoints.
   ASSERT(catch(strsrch(tmp, 999999999999)));
   ASSERT(catch(strsrch(tmp, 999999999999, 1)));
+
+  ASSERT_EQ(({"一", "二", "三"}), explode("一二三", ""));
+  ASSERT_EQ(({"一", "a", "二", "b", "三", "c"}), explode("一a二b三c", ""));
+  ASSERT_EQ(({"一", "二", "三", "四"}), explode("一👩‍👩‍👧‍👧二👩‍👩‍👧‍👧三👩‍👩‍👧‍👧四", "👩‍👩‍👧‍👧"));
+  // explode also only works on EGCs, not codepoints
+  ASSERT_EQ(({"一👩‍👩‍👧‍👧二👩‍👩‍👧‍👧三👩‍👩‍👧‍👧四"}), explode("一👩‍👩‍👧‍👧二👩‍👩‍👧‍👧三👩‍👩‍👧‍👧四", "‍"));
+
+  tmp = "甲甲甲一甲甲二甲甲三甲甲四甲甲甲";
+#ifndef __REVERSIBLE_EXPLODE_STRING__
+#ifdef __SANE_EXPLODE_STRING__
+  ASSERT_EQ(({"", "", "一", "", "二", "", "三", "", "四", "", ""}), explode(tmp, "甲"));
+#else
+  ASSERT_EQ(({"一", "二", "三", "四"}), explode(tmp, "甲"));
+#endif
+#else
+  ASSERT_EQ(({"", "", "", "一", "", "二", "", "三", "", "四", "", "", ""}), explode(tmp, "甲"));
+#endif
+  ASSERT_EQ(({"", "", "", "一", "", "二", "", "三", "", "四", "", "", ""}), explode_reversible(tmp, "甲"));
+  ASSERT_EQ(tmp, implode(explode_reversible(tmp, "甲"), "甲"));
+
+  ASSERT_NE("一二三四", implode(explode_reversible(tmp, "甲"), "‍"));
 }

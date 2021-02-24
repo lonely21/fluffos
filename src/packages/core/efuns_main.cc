@@ -152,23 +152,28 @@ void f_bind(void) {
 }
 #endif
 
-#ifdef F_CACHE_STATS
-static void print_cache_stats(outbuffer_t *ob) {
-  outbuf_add(ob, "Apply lookup cache information\n");
-  outbuf_add(ob, "-------------------------------\n");
-  outbuf_addv(ob, "%% cache hits:    %10.2f\n",
-              100 * (static_cast<LPC_FLOAT>(apply_cache_hits) / apply_cache_lookups));
-  outbuf_addv(ob, "total lookup:     %10lu\n", apply_cache_lookups);
-  outbuf_addv(ob, "cache hits:      %10lu\n", apply_cache_hits);
-  outbuf_addv(ob, "cache size (bytes w/o overhead):  %10lu\n",
-              apply_cache_items * sizeof(lookup_entry_s));
+static int print_cache_stats(outbuffer_t *ob, int verbose) {
+  auto size = apply_cache_items * sizeof(lookup_entry_s);
+  if (verbose == 1) {
+    outbuf_add(ob, "Apply lookup cache information\n");
+    outbuf_add(ob, "-------------------------------\n");
+    outbuf_addv(ob, "%% cache hits:    %10.2f\n",
+                100 * (static_cast<LPC_FLOAT>(apply_cache_hits) / apply_cache_lookups));
+    outbuf_addv(ob, "total lookup:     %10lu\n", apply_cache_lookups);
+    outbuf_addv(ob, "cache hits:      %10lu\n", apply_cache_hits);
+    outbuf_addv(ob, "cache size (bytes w/o overhead):  %10lu\n", size);
+  } else if (verbose != -1) {
+    outbuf_addv(ob, "%-20s %8lu %8lu\n", "Apply cache", apply_cache_items, size);
+  }
+  return size;
 }
 
+#ifdef F_CACHE_STATS
 void f_cache_stats(void) {
   outbuffer_t ob;
 
   outbuf_zero(&ob);
-  print_cache_stats(&ob);
+  print_cache_stats(&ob, 1);
   outbuf_push(&ob);
 }
 #endif
@@ -214,7 +219,7 @@ void f__call_other(void) {
   } else {
     ob = find_object(arg[0].u.string);
     if (!ob || !object_visible(ob)) {
-      error("call_other() couldn't find object\n");
+      error("call_other() couldn't find object '%s'.\n", arg[0].u.string);
     }
   }
   /* Send the remaining arguments to the function. */
@@ -425,39 +430,6 @@ void f__new(void) {
 }
 #endif
 
-#ifdef F_CTIME
-void f_ctime(void) {
-  char buf[255] = {};
-  const char *cp = buf, *nl;
-  char *p;
-  int l;
-  time_t timestamp;
-
-  if (st_num_arg) {
-    timestamp = sp->u.number;
-  } else {
-    push_number(0);
-    timestamp = get_current_time();
-  }
-
-  cp = ctime_r(&timestamp, buf);
-  if (!cp) {
-    cp = "ctime failed!";
-  }
-
-  if ((nl = strchr(cp, '\n'))) {
-    l = nl - cp;
-  } else {
-    l = strlen(cp);
-  }
-
-  p = new_string(l, "f_ctime");
-  strncpy(p, cp, l);
-  p[l] = '\0';
-  put_malloced_string(p);
-}
-#endif
-
 #ifdef F_DEEP_INHERIT_LIST
 void f_deep_inherit_list(void) {
   array_t *vec;
@@ -594,7 +566,21 @@ void f_explode(void) {
 
   int len = SVALUE_STRLEN(sp - 1);
 
-  vec = explode_string((sp - 1)->u.string, len, sp->u.string, SVALUE_STRLEN(sp));
+  vec = explode_string((sp - 1)->u.string, len, sp->u.string, SVALUE_STRLEN(sp),
+                       CONFIG_INT(__RC_REVERSIBLE_EXPLODE_STRING__) != 0);
+  free_string_svalue(sp--);
+  free_string_svalue(sp);
+  put_array(vec);
+}
+#endif
+
+#ifdef F_EXPLODE_REVERSIBLE
+void f_explode_reversible(void) {
+  array_t *vec;
+
+  int len = SVALUE_STRLEN(sp - 1);
+
+  vec = explode_string((sp - 1)->u.string, len, sp->u.string, SVALUE_STRLEN(sp), true);
   free_string_svalue(sp--);
   free_string_svalue(sp);
   put_array(vec);
@@ -862,7 +848,7 @@ void f_input_to(void) {
     st_num_arg--; /* Don't count the flag as an arg */
     flag = arg[1].u.number;
   }
-  st_num_arg--; /* Don't count the name of the func either. */
+  st_num_arg--; /* Don't count the name of the func eicther. */
   i = input_to(arg, flag, st_num_arg, &arg[1 + tmp]);
   free_svalue(arg, "f_input_to");
   (sp = arg)->type = T_NUMBER;
@@ -1115,7 +1101,7 @@ void f_member_array(void) {
   } else {
     svalue_t *sv;
     svalue_t *find;
-    int flen;
+    int flen = 0;
 
     size = (v = sp->u.arr)->size;
     find = (sp - 1);
@@ -1305,6 +1291,88 @@ void f_move_object(void) {
 }
 #endif
 
+namespace {
+int calculate_and_maybe_print_memory_info(outbuffer_t *ob, int verbose) {
+  uint64_t tot = 0;
+
+  tot += print_cache_stats(ob, verbose);
+  if (verbose && verbose != -1) outbuf_add(ob, "\n");
+
+  tot += ObjectTable::instance().showStatus(ob, verbose);
+  if (verbose && verbose != -1) outbuf_add(ob, "\n");
+
+  tot += heart_beat_status(ob, verbose);
+  if (verbose && verbose != -1) outbuf_add(ob, "\n");
+
+  tot += print_call_out_usage(ob, verbose);
+  if (verbose && verbose != -1) outbuf_add(ob, "\n");
+
+  if (verbose && verbose != -1) {
+    outbuf_add(ob, "Memory statistics\n");
+    outbuf_add(ob, "------------------------------\n");
+  }
+  auto total_sentence_size = tot_alloc_sentence * sizeof(sentence_t);
+  if (verbose != -1) {
+    outbuf_addv(ob, "%-20s %8" PRIu64 " %8" PRIu64 "\n", "Sentences", tot_alloc_sentence,
+                total_sentence_size);
+  }
+  tot += total_sentence_size;
+
+  if (verbose != -1) {
+#ifndef DEBUG
+    outbuf_addv(ob, "%-20s %8" PRIu64 " %8" PRIu64 "\n", "Objects", tot_alloc_object,
+                tot_alloc_object_size);
+#else
+    outbuf_addv(ob, "%-20s %8" PRIu64 " %8" PRIu64 " (%" PRIu64 " dangling)\n",
+                "Objects:", tot_alloc_object, tot_alloc_object_size, tot_dangling_object);
+#endif
+  }
+  tot += tot_alloc_object_size;
+
+  auto total_users = (uint64_t)users_num(true);
+  auto total_users_size = total_users * sizeof(interactive_t);
+  if (verbose != -1) {
+    outbuf_addv(ob, "%-20s %8" PRIu64 " %8" PRIu64 "\n", "Interactives", total_users,
+                total_users_size);
+  }
+  tot += total_users_size;
+
+  if (verbose != -1) {
+    outbuf_addv(ob, "%-20s %8" PRIu64 " %8" PRIu64 "\n", "Prog blocks", total_num_prog_blocks,
+                total_prog_block_size);
+  }
+  tot += total_prog_block_size;
+
+  if (verbose != -1) {
+    outbuf_addv(ob, "%-20s %8" PRIu64 " %8" PRIu64 "\n", "Arrays", num_arrays, total_array_size);
+  }
+  tot += total_array_size;
+
+  if (verbose != -1) {
+    outbuf_addv(ob, "%-20s %8" PRIu64 " %8" PRIu64 "\n", "Classes", num_classes, total_class_size);
+  }
+  tot += total_class_size;
+
+  auto total_mapping_nodes_size = total_mapping_nodes * sizeof(mapping_node_t);
+  if (verbose != -1) {
+    outbuf_addv(ob, "%-20s %8" PRIu64 " %8" PRIu64 "\n", "Mappings", num_mappings,
+                total_mapping_size);
+    outbuf_addv(ob, "%-20s %8" PRIu64 " %8" PRIu64 "\n", "Mappings(nodes)", total_mapping_nodes,
+                total_mapping_nodes_size);
+  }
+  tot += total_mapping_size + total_mapping_nodes_size;
+  if (verbose && verbose != -1) outbuf_add(ob, "\n");
+
+  tot += heart_beat_status(ob, verbose);
+  if (verbose && verbose != -1) outbuf_add(ob, "\n");
+
+  tot += add_string_status(ob, verbose);
+  if (verbose && verbose != -1) outbuf_add(ob, "\n");
+
+  return tot;
+}
+}  // namespace
+
 #ifdef F_MUD_STATUS
 void f_mud_status(void) {
   uint64_t tot = 0;
@@ -1316,7 +1384,9 @@ void f_mud_status(void) {
 
   if (verbose) {
     char dir_buf[1024];
-    outbuf_addv(&ob, "current working directory: %s\n\n", get_current_dir(dir_buf, 1024));
+    outbuf_addv(&ob, "current working directory: %s\n", get_current_dir(dir_buf, 1024));
+    outbuf_add(&ob, "\n");
+
     outbuf_add(&ob, "add_message statistics\n");
     outbuf_add(&ob, "------------------------------\n");
     outbuf_addv(&ob,
@@ -1325,54 +1395,26 @@ void f_mud_status(void) {
                 add_message_calls, inet_packets,
                 inet_volume && inet_packets ? static_cast<double>(inet_volume) / inet_packets : 0);
 
+    outbuf_add(&ob, "\n");
+
     stat_living_objects(&ob);
-
-#ifdef F_CACHE_STATS
-    print_cache_stats(&ob);
     outbuf_add(&ob, "\n");
-#endif
-    tot = ObjectTable::instance().showStatus(&ob, verbose);
-    outbuf_add(&ob, "\n");
-    tot += heart_beat_status(&ob, verbose);
-    outbuf_add(&ob, "\n");
-    tot += add_string_status(&ob, verbose);
-    outbuf_add(&ob, "\n");
-    tot += print_call_out_usage(&ob, verbose);
-  } else {
-    /* !verbose */
-    outbuf_addv(&ob, "Sentences:\t\t\t%8" PRIu64 " %8" PRIu64 "\n", tot_alloc_sentence,
-                tot_alloc_sentence * sizeof(sentence_t));
-#ifndef DEBUG
-    outbuf_addv(&ob, "Objects:\t\t\t%8" PRIu64 " %8" PRIu64 "\n", tot_alloc_object,
-                tot_alloc_object_size);
-#else
-    outbuf_addv(&ob, "Objects:\t\t\t%8" PRIu64 " %8" PRIu64 " (%8" PRIu64 " dangling)\n",
-                tot_alloc_object, tot_alloc_object_size, tot_dangling_object);
-#endif
-    outbuf_addv(&ob, "Prog blocks:\t\t\t%8" PRIu64 " %8" PRIu64 "\n", total_num_prog_blocks,
-                total_prog_block_size);
-    outbuf_addv(&ob, "Arrays:\t\t\t\t%8" PRIu64 " %8" PRIu64 "\n", num_arrays, total_array_size);
-    outbuf_addv(&ob, "Classes:\t\t\t%8" PRIu64 " %8" PRIu64 "\n", num_classes, total_class_size);
-
-    outbuf_addv(&ob, "Mappings:\t\t\t%8" PRIu64 " %8" PRIu64 "\n", num_mappings,
-                total_mapping_size);
-    outbuf_addv(&ob, "Mappings(nodes):\t\t%8" PRIu64 "\n", total_mapping_nodes);
-
-    outbuf_addv(&ob, "Interactives:\t\t\t%8d %8" PRIu64 "\n", users_num(true),
-                (uint64_t)(users_num(true)) * sizeof(interactive_t));
-
-    tot = ObjectTable::instance().showStatus(&ob, verbose) + heart_beat_status(&ob, verbose) +
-          add_string_status(&ob, verbose) + print_call_out_usage(&ob, verbose);
   }
 
-  tot += total_prog_block_size + total_array_size + total_class_size + total_mapping_size +
-         tot_alloc_sentence * sizeof(sentence_t) + tot_alloc_object_size +
-         users_num(true) * sizeof(interactive_t);
+  tot = calculate_and_maybe_print_memory_info(&ob, verbose);
+  if (verbose) outbuf_add(&ob, "\n");
 
-  if (!verbose) {
-    outbuf_add(&ob, "\t\t\t\t\t --------\n");
-    outbuf_addv(&ob, "Total:\t\t\t\t\t %8" PRIu64 "\n", tot);
+  if (verbose) {
+    outbuf_add(&ob, "Summary\n");
+    outbuf_add(&ob, "------------------------------\n");
   }
+  outbuf_addv(&ob, "Total accounted: %8" PRIu64 "\n", tot);
+
+  struct rusage current;
+  if (!getrusage(RUSAGE_SELF, &current)) {
+    outbuf_addv(&ob, "Max RSS: %8" PRIu64 "\n", current.ru_maxrss * 1024);
+  }
+
   outbuf_push(&ob);
 }
 #endif
@@ -2541,7 +2583,7 @@ void f_stat(void) {
   }
   if (stat(path, &buf) != -1) {
     if (buf.st_mode & S_IFREG) { /* if a regular file */
-      v = allocate_empty_array(3);
+      v = allocate_empty_array(4);
       v->item[0].type = T_NUMBER;
       v->item[0].subtype = 0;
       v->item[0].u.number = buf.st_size;
@@ -2559,6 +2601,11 @@ void f_stat(void) {
       } else {
         v->item[2].u.number = 0;
       }
+
+      v->item[3].type = T_NUMBER;
+      v->item[3].subtype = 0;
+      v->item[3].u.number = buf.st_ctime;
+
       free_string_svalue(sp);
       put_array(v);
       return;
@@ -2611,7 +2658,7 @@ void f_strsrch(void) {
   LPC_INT ret = -1;
   // only search if there is a chance.
   if (find_len <= src_len) {
-    ret = u8_egc_find(arg1->u.string, src_len, find, find_len, arg3->u.number != 0);
+    ret = u8_egc_find_as_index(arg1->u.string, src_len, find, find_len, arg3->u.number != 0);
   }
 
   pop_3_elems();
@@ -2837,18 +2884,15 @@ void f_throw(void) {
 }
 #endif
 
-#ifdef F_TIME
-void f_time(void) { push_number(get_current_time()); }
-#endif
-
 #ifdef F__TO_FLOAT
 void f__to_float(void) {
   LPC_FLOAT temp = 0;
 
   switch (sp->type) {
     case T_NUMBER:
+      temp = sp->u.number;
       sp->type = T_REAL;
-      sp->u.real = static_cast<LPC_FLOAT>(sp->u.number);
+      sp->u.real = temp;
       break;
     case T_STRING:
       temp = strtod(sp->u.string, nullptr);
@@ -2861,13 +2905,14 @@ void f__to_float(void) {
 
 #ifdef F__TO_INT
 void f__to_int(void) {
+  LPC_INT temp = 0;
   switch (sp->type) {
     case T_REAL:
+      temp = sp->u.real;
       sp->type = T_NUMBER;
-      sp->u.number = static_cast<LPC_INT>(sp->u.real);
+      sp->u.number = temp;
       break;
     case T_STRING: {
-      LPC_INT temp;
       char *p;
 
       temp = strtoll(sp->u.string, &p, 10);
@@ -3117,7 +3162,12 @@ void f_dump_file_descriptors(void) {
 #endif
 
 #ifdef F_RECLAIM_OBJECTS
-void f_reclaim_objects(void) { push_number(reclaim_objects(false)); }
+void f_reclaim_objects(void) {
+  auto res = reclaim_objects(false);
+  add_gametick_event(std::chrono::seconds(0),
+                     tick_event::callback_type([] { remove_destructed_objects(); }));
+  push_number(res);
+}
 #endif
 
 #ifdef F_MEMORY_INFO
@@ -3126,13 +3176,7 @@ void f_memory_info(void) {
   object_t *ob;
 
   if (st_num_arg == 0) {
-    LPC_INT tot;
-
-    tot = total_prog_block_size + total_array_size + total_class_size + total_mapping_size +
-          tot_alloc_object_size + tot_alloc_sentence * sizeof(sentence_t) +
-          users_num(true) * sizeof(interactive_t) +
-          ObjectTable::instance().showStatus(nullptr, -1) + heart_beat_status(nullptr, -1) +
-          add_string_status(nullptr, -1) + print_call_out_usage(nullptr, -1);
+    LPC_INT tot = calculate_and_maybe_print_memory_info(nullptr, -1);
     push_number(tot);
     return;
   }
@@ -3377,61 +3421,6 @@ void f_oldcrypt(void) {
   res = string_copy(custom_crypt((sp - 1)->u.string, p, nullptr), "f_oldcrypt");
   pop_2_elems();
   push_malloced_string(res);
-}
-#endif
-
-#ifdef F_LOCALTIME
-/* FIXME: most of the #ifdefs here should be based on configure checks
-   instead.  Same for rusage() */
-void f_localtime(void) {
-  struct tm res = {};
-  array_t *vec;
-  time_t lt;
-
-  lt = sp->u.number;
-  auto tm = localtime_r(&lt, &res);
-
-  pop_stack();
-
-  if (!tm) {
-    push_svalue(&const0u);
-    return;
-  }
-
-  vec = allocate_empty_array(11);
-
-  vec->item[LT_SEC].type = T_NUMBER;
-  vec->item[LT_SEC].u.number = tm->tm_sec;
-  vec->item[LT_MIN].type = T_NUMBER;
-  vec->item[LT_MIN].u.number = tm->tm_min;
-  vec->item[LT_HOUR].type = T_NUMBER;
-  vec->item[LT_HOUR].u.number = tm->tm_hour;
-  vec->item[LT_MDAY].type = T_NUMBER;
-  vec->item[LT_MDAY].u.number = tm->tm_mday;
-  vec->item[LT_MON].type = T_NUMBER;
-  vec->item[LT_MON].u.number = tm->tm_mon;
-  vec->item[LT_YEAR].type = T_NUMBER;
-  vec->item[LT_YEAR].u.number = tm->tm_year + 1900;
-  vec->item[LT_WDAY].type = T_NUMBER;
-  vec->item[LT_WDAY].u.number = tm->tm_wday;
-  vec->item[LT_YDAY].type = T_NUMBER;
-  vec->item[LT_YDAY].u.number = tm->tm_yday;
-  vec->item[LT_GMTOFF].type = T_NUMBER;
-  vec->item[LT_ZONE].type = T_STRING;
-  vec->item[LT_ZONE].subtype = STRING_MALLOC;
-  vec->item[LT_ISDST].type = T_NUMBER;
-  vec->item[LT_ISDST].u.number = tm->tm_isdst;
-#ifdef __FreeBSD__
-  vec->item[LT_GMTOFF].u.number = tm->tm_gmtoff;
-#else
-  vec->item[LT_GMTOFF].u.number = timezone;
-#endif
-  if (!tm->tm_isdst) {
-    vec->item[LT_ZONE].u.string = string_copy(tzname[0], "f_localtime");
-  } else {
-    vec->item[LT_ZONE].u.string = string_copy(tzname[1], "f_localtime");
-  }
-  push_refed_array(vec);
 }
 #endif
 

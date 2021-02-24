@@ -1235,7 +1235,7 @@ static int safe_restore_svalue(char *cp, svalue_t *v) {
   return 0;
 }
 
-static int fgv_recurse(program_t *prog, int *idx, char *name, unsigned short *type,
+static int fgv_recurse(program_t *prog, int *idx, const char *name, unsigned short *type,
                        int check_nosave) {
   int i;
   for (i = 0; i < prog->num_inherited; i++) {
@@ -1260,7 +1260,7 @@ static int fgv_recurse(program_t *prog, int *idx, char *name, unsigned short *ty
 int find_global_variable(program_t *prog, const char *const name, unsigned short *type,
                          int check_nosave) {
   int idx = 0;
-  char *str = findstring(name);
+  const char *str = findstring(name);
 
   if (str && fgv_recurse(prog, &idx, str, type, check_nosave)) {
     return idx;
@@ -1466,9 +1466,10 @@ static int save_object_recurse_str(program_t *prog, svalue_t **svp, int type, in
   return textsize;
 }
 
+namespace {
 int sel = -1;
-
-static const int SAVE_EXTENSION_GZ_LENGTH = strlen(SAVE_GZ_EXTENSION);
+const int SAVE_EXTENSION_GZ_LENGTH = strlen(SAVE_GZ_EXTENSION);
+}  // namespace
 
 int save_object(object_t *ob, const char *file, int save_zeros) {
   char *name, *p;

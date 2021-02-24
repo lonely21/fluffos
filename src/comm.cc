@@ -83,7 +83,7 @@ void on_user_command(evutil_socket_t fd, short what, void *arg) {
   auto user = reinterpret_cast<interactive_t *>(arg);
 
   if (user == nullptr) {
-    fatal("on_user_command: user == NULL, Driver BUG.");
+    DEBUG_FATAL("on_user_command: user == NULL, Driver BUG.");
     return;
   }
 
@@ -117,7 +117,7 @@ void on_user_read(bufferevent *bev, void *arg) {
   auto user = reinterpret_cast<interactive_t *>(arg);
 
   if (user == nullptr) {
-    fatal("on_user_read: user == NULL, Driver BUG.");
+    DEBUG_FATAL("on_user_read: user == NULL, Driver BUG.");
     return;
   }
 
@@ -131,7 +131,7 @@ void on_user_read(bufferevent *bev, void *arg) {
 void on_user_write(bufferevent *bev, void *arg) {
   auto user = reinterpret_cast<interactive_t *>(arg);
   if (user == nullptr) {
-    fatal("on_user_write: user == NULL, Driver BUG.");
+    DEBUG_FATAL("on_user_write: user == NULL, Driver BUG.");
     return;
   }
   // nothing to do.
@@ -141,7 +141,7 @@ void on_user_events(bufferevent *bev, short events, void *arg) {
   auto user = reinterpret_cast<interactive_t *>(arg);
 
   if (user == nullptr) {
-    fatal("on_user_events: user == NULL, Driver BUG.");
+    DEBUG_FATAL("on_user_events: user == NULL, Driver BUG.");
     return;
   }
 
@@ -674,20 +674,20 @@ void get_user_data(interactive_t *ip) {
       // Impossible, we don't handle it here.
       break;
     case PORT_TELNET:
-      text_space = MAX_TEXT - ip->text_end;
+      text_space = sizeof(ip->text) - ip->text_end;
 
       /* check if we need more space */
-      if (text_space < MAX_TEXT / 16) {
+      if (text_space < sizeof(ip->text) / 16) {
         if (ip->text_start > 0) {
           memmove(ip->text, ip->text + ip->text_start, ip->text_end - ip->text_start);
           text_space += ip->text_start;
           ip->text_end -= ip->text_start;
           ip->text_start = 0;
         }
-        if (text_space < MAX_TEXT / 16) {
+        if (text_space < sizeof(ip->text) / 16) {
           ip->iflags |= SKIP_COMMAND;
           ip->text_start = ip->text_end = 0;
-          text_space = MAX_TEXT;
+          text_space = sizeof(ip->text);
         }
       }
       break;
@@ -862,7 +862,7 @@ void on_user_websocket_received(interactive_t *ip, const char *data, size_t len)
     return;
   }
 
-  auto text_space = MAX_TEXT - ip->text_end;
+  auto text_space = sizeof(ip->text) - ip->text_end;
 
   /* check if we need more space */
   if (text_space < len) {
@@ -875,7 +875,7 @@ void on_user_websocket_received(interactive_t *ip, const char *data, size_t len)
     if (text_space < len) {
       ip->iflags |= SKIP_COMMAND;
       ip->text_start = ip->text_end = 0;
-      text_space = MAX_TEXT;
+      text_space = sizeof(ip->text);
     }
   }
 
@@ -939,7 +939,6 @@ int cmd_in_buf(interactive_t *ip) {
     return 1;
   }
 
-  /* search for a newline.  if found, we have a command */
   for (p = ip->text + ip->text_start; p < ip->text + ip->text_end; p++) {
     if (*p == '\r' || *p == '\n') {
       return 1;
@@ -975,7 +974,8 @@ static char *first_cmd_in_buf(interactive_t *ip) {
   }
 
   /* search for the newline */
-  while (ip->text[ip->text_start] != '\n' && ip->text[ip->text_start] != '\r') {
+  while (ip->text_start < ip->text_end && ip->text[ip->text_start] != '\n' &&
+         ip->text[ip->text_start] != '\r') {
     ip->text_start++;
   }
 
@@ -987,6 +987,7 @@ static char *first_cmd_in_buf(interactive_t *ip) {
   }
 
   ip->text[ip->text_start++] = 0;
+
   if (!cmd_in_buf(ip)) {
     ip->iflags &= ~CMD_IN_BUF;
   }
@@ -1020,7 +1021,7 @@ static char *get_user_command(interactive_t *ip) {
   debug(connections, "get_user_command: user_command = (%s)\n", user_command);
   save_command_giver(ip->ob);
 
-  if ((ip->iflags & NOECHO) && !(ip->iflags & SINGLE_CHAR)) {
+  if ((ip->iflags & NOECHO)) {
     /* must not enable echo before the user input is received */
     set_localecho(command_giver->interactive, true);
     ip->iflags &= ~NOECHO;
@@ -1073,10 +1074,9 @@ static void process_input(interactive_t *ip, char *user_command) {
 
 #ifndef NO_ADD_ACTION
   if (ret->type == T_STRING) {
-    static char buf[MAX_TEXT];
-
-    strncpy(buf, ret->u.string, MAX_TEXT - 1);
-    parse_command(buf, command_giver);
+    auto command = string_copy(ret->u.string, "current_command: " __CURRENT_FILE_LINE__);
+    DEFER { FREE_MSTR(command); };
+    parse_command(command, command_giver);
   } else {
     if (ret->type != T_NUMBER || !ret->u.number) {
       parse_command(user_command, command_giver);
@@ -1103,7 +1103,7 @@ int process_user_command(interactive_t *ip) {
   }
 
   if (ip != command_giver->interactive) {
-    fatal("BUG: process_user_command.");
+    DEBUG_FATAL("BUG: process_user_command.");
   }
 
   current_interactive = command_giver; /* this is yuck phooey, sigh */
@@ -1158,7 +1158,6 @@ int process_user_command(interactive_t *ip) {
     goto exit;
   }
 #endif
-
 #if defined(F_INPUT_TO) || defined(F_GET_CHAR)
   if (call_function_interactive(ip, user_command)) {
     goto exit;
@@ -1172,7 +1171,12 @@ exit:
    * Print a prompt if user is still here.
    */
   if (IP_VALID(ip, command_giver)) {
-    print_prompt(ip);
+    if (ip->input_to == nullptr) {
+      print_prompt(ip);
+    }
+    if (ip->telnet && (ip->iflags & USING_TELNET) && !(ip->iflags & SUPPRESS_GA)) {
+      telnet_send_ga(ip->telnet);
+    }
     // FIXME: this doesn't belong here, should be moved to event.cc
     maybe_schedule_user_command(ip);
   }
@@ -1292,23 +1296,36 @@ void remove_interactive(object_t *ob, int dested) {
 static int call_function_interactive(interactive_t *i, char *str) {
   object_t *ob;
   funptr_t *funp;
-  char *function;
+  const char *function;
   svalue_t *args;
   sentence_t *sent;
   int num_arg;
   int was_single = 0;
   int was_noecho = 0;
+  int ret = 0;
 
   i->iflags &= ~NOESC;
   if (!(sent = i->input_to)) {
     return (0);
   }
 
+  ob = sent->ob;
   /*
    * Special feature: input_to() has been called to setup a call to a
    * function.
    */
-  if (sent->ob->flags & O_DESTRUCTED) {
+  if (i->iflags & SINGLE_CHAR) {
+    /*
+     * clear single character mode
+     */
+    i->iflags &= ~SINGLE_CHAR;
+    was_single = 1;
+  }
+  if (i->iflags & NOECHO) {
+    was_noecho = 1;
+    i->iflags &= ~NOECHO;
+  }
+  if (ob->flags & O_DESTRUCTED) {
     /* Sorry, the object has selfdestructed ! */
     free_object(&sent->ob, "call_function_interactive");
     free_sentence(sent);
@@ -1319,103 +1336,84 @@ static int call_function_interactive(interactive_t *i, char *str) {
     i->carryover = nullptr;
     i->num_carry = 0;
     i->input_to = nullptr;
-    if (i->iflags & SINGLE_CHAR) {
-      /*
-       * clear single character mode
-       */
-      i->iflags &= ~SINGLE_CHAR;
-      set_linemode(i, true);
-      if (i->iflags & NOECHO) {
-        i->iflags &= ~NOECHO;
-        set_localecho(i, true);
-      }
-    }
-
-    return (0);
-  }
-  /*
-   * We must all references to input_to fields before the call to apply(),
-   * because someone might want to set up a new input_to().
-   */
-
-  /* we put the function on the stack in case of an error */
-  STACK_INC;
-  if (sent->flags & V_FUNCTION) {
-    function = nullptr;
-    sp->type = T_FUNCTION;
-    sp->u.fp = funp = sent->function.f;
-    funp->hdr.ref++;
+    ret = 0;
   } else {
-    sp->type = T_STRING;
-    sp->subtype = STRING_SHARED;
-    sp->u.string = function = sent->function.s;
-    ref_string(function);
-  }
-  ob = sent->ob;
-
-  free_object(&sent->ob, "call_function_interactive");
-  free_sentence(sent);
-
-  /*
-   * If we have args, we have to copy them, so the svalues on the
-   * interactive struct can be FREEd
-   */
-  num_arg = i->num_carry;
-  if (num_arg) {
-    args = i->carryover;
-    i->num_carry = 0;
-    i->carryover = nullptr;
-  } else {
-    args = nullptr;
-  }
-
-  i->input_to = nullptr;
-  if (i->iflags & SINGLE_CHAR) {
     /*
-     * clear single character mode
+     * We must all references to input_to fields before the call to apply(),
+     * because someone might want to set up a new input_to().
      */
-    i->iflags &= ~SINGLE_CHAR;
-    was_single = 1;
-    if (i->iflags & NOECHO) {
-      was_noecho = 1;
-      i->iflags &= ~NOECHO;
+
+    /* we put the function on the stack in case of an error */
+    STACK_INC;
+    if (sent->flags & V_FUNCTION) {
+      function = nullptr;
+      sp->type = T_FUNCTION;
+      sp->u.fp = funp = sent->function.f;
+      funp->hdr.ref++;
+    } else {
+      sp->type = T_STRING;
+      sp->subtype = STRING_SHARED;
+      sp->u.string = function = sent->function.s;
+      ref_string(function);
     }
+
+    free_object(&sent->ob, "call_function_interactive");
+    free_sentence(sent);
+
+    /*
+     * If we have args, we have to copy them, so the svalues on the
+     * interactive struct can be FREEd
+     */
+    num_arg = i->num_carry;
+    if (num_arg) {
+      args = i->carryover;
+      i->num_carry = 0;
+      i->carryover = nullptr;
+    } else {
+      args = nullptr;
+    }
+
+    i->input_to = nullptr;
+
+    copy_and_push_string(str);
+    /*
+     * If we have args, we have to push them onto the stack in the order they
+     * were in when we got them.  They will be popped off by the called
+     * function.
+     */
+    if (args) {
+      transfer_push_some_svalues(args, num_arg);
+      FREE(args);
+    }
+    /* current_object no longer set */
+    if (function) {
+      if (function[0] == APPLY___INIT_SPECIAL_CHAR) {
+        error("Illegal function name.\n");
+      }
+      (void)safe_apply(function, ob, num_arg + 1, ORIGIN_INTERNAL);
+    } else {
+      safe_call_function_pointer(funp, num_arg + 1);
+    }
+    // NOTE: we can't use "i" here anymore, it is possible that it
+    // has been freed.
+    pop_stack(); /* remove `function' from stack */
+
+    ret = 1;
   }
 
-  // FIXME: this logic can be combined with above.
-  if (was_single && !(i->iflags & SINGLE_CHAR)) {
-    i->text_start = i->text_end = 0;
-    i->text[0] = '\0';
-    i->iflags &= ~CMD_IN_BUF;
-    set_linemode(i, true);
-  }
-  if (was_noecho && !(i->iflags & NOECHO)) {
-    set_localecho(i, true);
-  }
-
-  copy_and_push_string(str);
-  /*
-   * If we have args, we have to push them onto the stack in the order they
-   * were in when we got them.  They will be popped off by the called
-   * function.
-   */
-  if (args) {
-    transfer_push_some_svalues(args, num_arg);
-    FREE(args);
-  }
-  /* current_object no longer set */
-  if (function) {
-    if (function[0] == APPLY___INIT_SPECIAL_CHAR) {
-      error("Illegal function name.\n");
+  if (!(ob->flags & O_DESTRUCTED) && ob->interactive) {
+    i = ob->interactive;
+    if (was_single && !(i->iflags & SINGLE_CHAR)) {
+      i->text_start = i->text_end = 0;
+      i->text[0] = '\0';
+      i->iflags &= ~CMD_IN_BUF;
+      set_linemode(i, true);
     }
-    (void)safe_apply(function, ob, num_arg + 1, ORIGIN_INTERNAL);
-  } else {
-    safe_call_function_pointer(funp, num_arg + 1);
+    if (was_noecho && !(i->iflags & NOECHO)) {
+      set_localecho(i, true);
+    }
   }
-  // NOTE: we can't use "i" here anymore, it is possible that it
-  // has been freed.
-  pop_stack(); /* remove `function' from stack */
-  return (1);
+  return ret;
 } /* call_function_interactive() */
 
 int set_call(object_t *ob, sentence_t *sent, int flags) {
@@ -1434,10 +1432,6 @@ int set_call(object_t *ob, sentence_t *sent, int flags) {
   if (flags & I_SINGLE_CHAR) {
     set_charmode(ip);
   }
-  // Make sure client like mudlet flush previous outputs.
-  if (ip->telnet && (ip->iflags & USING_TELNET) && !(ip->iflags & SUPPRESS_GA)) {
-    telnet_iac(ip->telnet, TELNET_GA);
-  }
   return (1);
 } /* set_call() */
 #endif
@@ -1452,37 +1446,21 @@ void set_prompt(const char *str) {
  * Print the prompt, but only if input_to not is disabled.
  */
 static void print_prompt(interactive_t *ip) {
-  object_t *ob = ip->ob;
-
-#if defined(F_INPUT_TO) || defined(F_GET_CHAR)
-  if (ip->input_to == nullptr) {
-#endif
-    /* give user object a chance to write its own prompt */
-    if (!(ip->iflags & HAS_WRITE_PROMPT)) {
-      tell_object(ip->ob, ip->prompt, strlen(ip->prompt));
-    }
-#ifdef OLD_ED
-    else if (ip->ed_buffer) {
-      tell_object(ip->ob, ip->prompt, strlen(ip->prompt));
-    }
-#endif
-    else if (!apply(APPLY_WRITE_PROMPT, ip->ob, 0, ORIGIN_DRIVER)) {
-      if (!IP_VALID(ip, ob)) {
-        return;
-      }
-      ip->iflags &= ~HAS_WRITE_PROMPT;
-      tell_object(ip->ob, ip->prompt, strlen(ip->prompt));
-    }
-#if defined(F_INPUT_TO) || defined(F_GET_CHAR)
-  }
-#endif
-  if (!IP_VALID(ip, ob)) {
+  if (!ip || !ip->ob || !IP_VALID(ip, ip->ob)) {
     return;
   }
-  // Stavros: A lot of clients use this TELNET_GA to differentiate
-  // prompts from other text
-  if (ip->telnet && (ip->iflags & USING_TELNET) && !(ip->iflags & SUPPRESS_GA)) {
-    telnet_iac(ip->telnet, TELNET_GA);
+  /* give user object a chance to write its own prompt */
+  if (!(ip->iflags & HAS_WRITE_PROMPT)) {
+    tell_object(ip->ob, ip->prompt, strlen(ip->prompt));
+  }
+#ifdef OLD_ED
+  else if (ip->ed_buffer) {
+    tell_object(ip->ob, ip->prompt, strlen(ip->prompt));
+  }
+#endif
+  else if (!safe_apply(APPLY_WRITE_PROMPT, ip->ob, 0, ORIGIN_DRIVER)) {
+    ip->iflags &= ~HAS_WRITE_PROMPT;
+    tell_object(ip->ob, ip->prompt, strlen(ip->prompt));
   }
 } /* print_prompt() */
 
@@ -1603,8 +1581,7 @@ object_t *query_snooping(object_t *ob) {
       return user->ob;
     }
   }
-  // TODO: change this to dfatal
-  // fatal("couldn't find snoop target.\n");
+  DEBUG_FATAL("couldn't find snoop target.\n");
   return nullptr;
 } /* query_snooping() */
 #endif

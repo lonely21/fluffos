@@ -136,9 +136,11 @@
 #define uisascii(x) isascii((unsigned char)x)
 #define uisprint(x) isprint((unsigned char)x)
 
+#ifndef __CURRENT_FILE_LINE__
 #define __STRINGIFY(x) #x
 #define __TOSTRING(x) __STRINGIFY(x)
 #define __CURRENT_FILE_LINE__ __FILE__ ":" __TOSTRING(__LINE__)
+#endif
 
 /* Compare two number */
 #define COMPARE_NUMS(x, y) (((x) > (y) ? 1 : ((x) < (y) ? -1 : 0)))
@@ -169,6 +171,8 @@
 #include "base/internal/strput.h"
 
 #include "base/internal/strutils.h"
+
+#include "thirdparty/scope_guard/scope_guard.hpp"
 
 // IWYU pragma: end_exports
 #endif  // STD_H
