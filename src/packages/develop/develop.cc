@@ -52,7 +52,7 @@ void f_debug_info(void) {
 #ifndef NO_LIGHT
       outbuf_addv(&out, "total light : %d\n", ob->total_light);
 #endif
-      outbuf_addv(&out, "time_of_ref : %lld\n", ob->time_of_ref);
+      outbuf_addv(&out, "time_of_ref : %" PRIu64 "\n", ob->time_of_ref);
       outbuf_addv(&out, "ref         : %d\n", ob->ref);
 #ifdef DEBUGMALLOC_EXTENSIONS
       outbuf_addv(&out, "extra_ref   : %d\n", ob->extra_ref);
@@ -201,6 +201,22 @@ void f_dump_stralloc(void) {
 
   pop_stack();
   outbuf_push(&out);
+}
+#endif
+
+#ifdef F_DUMP_JEMALLOC
+#ifdef HAVE_JEMALLOC
+#define JEMALLOC_MANGLE
+#include <jemalloc/jemalloc.h>  // for mallctl
+#endif
+
+void f_dump_jemalloc() {
+#ifdef HAVE_JEMALLOC
+  mallctl("prof.dump", NULL, NULL, NULL, 0);
+  malloc_stats_print(nullptr, nullptr, "");
+#else
+  debug_message("Jemalloc is disabled, dump_jemalloc() has no effect.\n");
+#endif
 }
 #endif
 

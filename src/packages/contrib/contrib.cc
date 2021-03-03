@@ -50,7 +50,7 @@ void f_named_livings() {
   obtab = reinterpret_cast<object_t **>(
       DCALLOC(max_array_size, sizeof(object_t *), TAG_TEMPORARY, "named_livings"));
 
-  for (i = 0; i < CFG_LIVING_HASH_SIZE; i++) {
+  for (i = 0; i < CONFIG_INT(__LIVING_HASH_TABLE_SIZE__); i++) {
     for (ob = hashed_living[i]; ob; ob = ob->next_hashed_living) {
       if (!(ob->flags & O_ENABLE_COMMANDS)) {
         continue;
@@ -353,7 +353,7 @@ void f_functions(void) {
   i = num;
 
   while (i--) {
-    unsigned short low, high, mid;
+    unsigned short low = 0, high = 0, mid = 0;
 
     prog = sp->u.ob->prog;
     ind = i + offset;
@@ -401,14 +401,16 @@ void f_functions(void) {
       subvec->item[1].subtype = 0;
       subvec->item[1].u.number = funp->num_arg;
 
-      get_type_name(buf, end, funp->type);
+      auto p = get_type_name(buf, end, funp->type);
+      *(p - 1) = '\0';  // get rid of last space
       subvec->item[2].type = T_STRING;
       subvec->item[2].subtype = STRING_SHARED;
       subvec->item[2].u.string = make_shared_string(buf);
 
       for (j = 0; j < funp->num_arg; j++) {
         if (types) {
-          get_type_name(buf, end, types[j]);
+          auto p = get_type_name(buf, end, types[j]);
+          *(p - 1) = '\0';  // get rid of last space
           subvec->item[3 + j].type = T_STRING;
           subvec->item[3 + j].subtype = STRING_SHARED;
           subvec->item[3 + j].u.string = make_shared_string(buf);
@@ -447,7 +449,8 @@ static void fv_recurse(array_t *arr, int *idx, program_t *prog, int type, int fl
       subarr->item[0].type = T_STRING;
       subarr->item[0].subtype = STRING_SHARED;
       subarr->item[0].u.string = ref_string(prog->variable_table[i]);
-      get_type_name(buf, end, prog->variable_types[i]);
+      auto p = get_type_name(buf, end, prog->variable_types[i]);
+      *(p - 1) = '\0';  // get rid of last space
       subarr->item[1].type = T_STRING;
       subarr->item[1].subtype = STRING_SHARED;
       subarr->item[1].u.string = make_shared_string(buf);
@@ -1825,12 +1828,12 @@ void f_query_ip_port(void) {
 
 #if defined F_ZONETIME || defined F_IS_DAYLIGHT_SAVINGS_TIME
 
-char *set_timezone(const char *timezone) {
+const char *set_timezone(const char *new_tz) {
   static char put_tz[80];
   char *old_tz;
 
   old_tz = getenv("TZ");
-  sprintf(put_tz, "TZ=%s", timezone);
+  snprintf(put_tz, sizeof(put_tz) / sizeof(char), "TZ=%s", new_tz);
   putenv(put_tz);
   tzset();
   return old_tz;
@@ -1839,7 +1842,7 @@ char *set_timezone(const char *timezone) {
 void reset_timezone(const char *old_tz) {
   static char put_tz[80];
   if (old_tz) {
-    sprintf(put_tz, "TZ=%s", old_tz);
+    snprintf(put_tz, sizeof(put_tz) / sizeof(char), "TZ=%s", old_tz);
     putenv(put_tz);
   } else {
 #ifndef __MINGW32__
@@ -1855,19 +1858,18 @@ void reset_timezone(const char *old_tz) {
 #endif
 
 #ifdef F_ZONETIME
-
 void f_zonetime(void) {
-  const char *timezone, *old_tz;
+  const char *new_tz, *old_tz;
   char *retv;
   time_t time_val;
   int len;
 
   time_val = sp->u.number;
   pop_stack();
-  timezone = sp->u.string;
+  new_tz = sp->u.string;
   pop_stack();
 
-  old_tz = set_timezone(timezone);
+  old_tz = set_timezone(new_tz);
   char buf[256] = {};
   retv = ctime_r(&time_val, buf);
   if (!retv) {
@@ -1884,22 +1886,18 @@ void f_zonetime(void) {
 
 #ifdef F_IS_DAYLIGHT_SAVINGS_TIME
 void f_is_daylight_savings_time(void) {
-  struct tm *t;
-  const char *timezone;
-  char *old_tz;
-
   time_t time_to_check = sp->u.number;
   pop_stack();
-  timezone = sp->u.string;
+  const char *new_tz = sp->u.string;
   pop_stack();
 
-  old_tz = set_timezone(timezone);
+  const char *old_tz = set_timezone(new_tz);
 
   if (time_to_check < 0) {
     time_to_check = 0;
   }
   struct tm res = {};
-  t = localtime_r(&time_to_check, &res);
+  struct tm *t = localtime_r(&time_to_check, &res);
   if (t) {
     push_number((t->tm_isdst) > 0);
   } else {
@@ -3010,7 +3008,8 @@ void f_classes() {
             make_shared_string(prog->strings[prog->class_members[offset].membername]);
 
         // ...and type.
-        get_type_name(buf, end, prog->class_members[offset].type);
+        auto p = get_type_name(buf, end, prog->class_members[offset].type);
+        *(p - 1) = '\0';  // get rid of last space
         subsubvec->item[1].type = T_STRING;
         subsubvec->item[1].subtype = STRING_SHARED;
         subsubvec->item[1].u.string = make_shared_string(buf);
