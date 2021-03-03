@@ -126,6 +126,6 @@
  *   resolution is 1/60 of a second, then any time less than approxmately 15k
  *   microseconds will resolve to zero (0).
  */
-#define PROFILE_FUNCTIONS
+#undef PROFILE_FUNCTIONS
 
 #endif /* _BASE_INTERNAL_OPTIONS_INTERNAL_H */

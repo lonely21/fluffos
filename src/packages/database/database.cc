@@ -2,7 +2,7 @@
 #include "base/package_api.h"
 
 // Copy from mapping.c to do mapping building
-static svalue_t *insert_in_mapping (mapping_t * m, char * key) {
+static svalue_t *insert_in_mapping(mapping_t *m, const char *key) {
     svalue_t lv;
     svalue_t *ret;
 
