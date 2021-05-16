@@ -1,1 +1,17 @@
+
 *.DS_Store
+/.idea
+/.vscode
+# default build directory
+/build
+/build*
+# default idea build directory
+/cmake-build-*
+
+
+/target
+**/*.rs.bk
+/docs/.bundle
+/docs/Gemfile.lock
+/docs/vendor
+/venv/

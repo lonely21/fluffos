@@ -207,14 +207,10 @@ static int give_uid_to_object(object_t *ob) {
    * again, because creator_name will be lost !
    */
   if (strcmp(current_object->uid->name, creator_name) == 0) {
-/*
- * The loaded object has the same uid as the loader.
- */
-#ifndef COMPAT_32
+    /*
+     * The loaded object has the same uid as the loader.
+     */
     ob->uid = current_object->uid;
-#else
-    ob->uid = current_object->euid;
-#endif
     ob->euid = current_object->euid;
     return 1;
   }
@@ -425,7 +421,7 @@ object_t *load_object(const char *lname, int callcreate) {
   object_t *ob;
   svalue_t *mret;
   struct stat c_st;
-  char name[400], actualname[400], real_name[sizeof(name)+2], obname[sizeof(real_name)];
+  char name[400], actualname[400], real_name[sizeof(name) + 2], obname[sizeof(real_name)];
 
   const char *pname = check_valid_path(lname, master_ob, "load_object", 0);
   if (!pname) {

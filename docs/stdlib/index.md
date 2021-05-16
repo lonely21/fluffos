@@ -15,6 +15,16 @@ title: STDLIB
 </div>
 
 <h2 class="border-bottom py-3 text-uppercase">
+  <img src="https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/bookmark.svg"><a class='text-secondary' name="db" href="#db">db</a>
+</h2>
+
+<div class='row'>
+<div class='col-sm-4 col-md-3 col-lg-3 col-xl-2'>
+<div><a href='db/database.html'>database</a></div>
+</div>
+</div>
+
+<h2 class="border-bottom py-3 text-uppercase">
   <img src="https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/bookmark.svg"><a class='text-secondary' name="mappings" href="#mappings">mappings</a>
 </h2>
 
@@ -44,6 +54,19 @@ title: STDLIB
 </div>
 
 <h2 class="border-bottom py-3 text-uppercase">
+  <img src="https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/bookmark.svg"><a class='text-secondary' name="objects" href="#objects">objects</a>
+</h2>
+
+<div class='row'>
+<div class='col-sm-4 col-md-3 col-lg-3 col-xl-2'>
+<div><a href='objects/all_environment.html'>all_environment</a></div>
+</div>
+<div class='col-sm-4 col-md-3 col-lg-3 col-xl-2'>
+<div><a href='objects/present_clone.html'>present_clone</a></div>
+</div>
+</div>
+
+<h2 class="border-bottom py-3 text-uppercase">
   <img src="https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/bookmark.svg"><a class='text-secondary' name="string" href="#string">string</a>
 </h2>
 
@@ -64,6 +87,6 @@ title: STDLIB
 
 <div class="alert alert-info my-4" role="alert">
     <img src="https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/info.svg">
-    This page is auto generated on 2021-04-23 11:46:42 CST for v2019.20210324-14-g0a8fc22e-dirty.</a>
+    This page is auto generated on 2021-05-11 19:16:24 EDT for v2019.20210429-13-g37c54583-dirty.</a>
 </div>
 

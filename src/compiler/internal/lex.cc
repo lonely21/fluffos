@@ -34,7 +34,10 @@
 #include "vm/internal/base/svalue.h"
 #include "compiler.h"
 #include "keyword.h"
+
+#include "compiler/internal/grammar_rules.h"
 #include "grammar.autogen.h"
+
 #include "scratchpad.h"
 
 // FIXME: in master.h
@@ -156,9 +159,6 @@ static keyword_t reswords[] = {
     {"catch", L_CATCH, 0},
 #ifdef STRUCT_CLASS
     {"class", L_CLASS, 0},
-#endif
-#ifdef COMPAT_32
-    {"closure", L_BASIC_TYPE, TYPE_FUNCTION},
 #endif
     {"continue", L_CONTINUE, 0},
     {"default", L_DEFAULT, 0},
@@ -327,10 +327,7 @@ static void add_define(const char *name, int nargs, const char *exps) {
         return;
       }
       if (nargs != p->nargs || strcmp(exps, p->exps)) {
-        char buf[200 + NSIZE];
-
-        sprintf(buf, "redefinition of #define %s\n", name);
-        yywarn(buf);
+        yywarn("redefinition of #define %s\n", name);
 
         p->exps =
             reinterpret_cast<char *>(DREALLOC(p->exps, len + 1, TAG_COMPILER, "add_define: redef"));
@@ -2227,15 +2224,9 @@ int yylex() {
             } else if (strcmp("echo", yytext) == 0) {
               debug_message("%s\n", sp);
             } else if (strcmp("error", yytext) == 0) {
-              char buf[MAXLINE + 1];
-              strcpy(buf, yytext);
-              strcat(buf, "\n");
-              yyerror(buf);
+              yyerror("%s\n", yytext);
             } else if (strcmp("warn", yytext) == 0) {
-              char buf[MAXLINE + 1];
-              strcpy(buf, yytext);
-              strcat(buf, "\n");
-              yywarn(buf);
+              yywarn("%s\n", yytext);
             } else if (strcmp("pragma", yytext) == 0) {
               handle_pragma(sp);
             } else if (strcmp("breakpoint", yytext) == 0) {
@@ -2247,12 +2238,6 @@ int yylex() {
             break;
           }
         } else {
-#ifdef COMPAT_32
-          if (*outp == '\'') {
-            outp++;
-            return L_LAMBDA;
-          }
-#endif
           goto badlex;
         }
       case '\'':
@@ -3698,10 +3683,7 @@ static void add_predefine(const char *name, int nargs, const char *exps) {
 
   if ((p = lookup_define(name))) {
     if (nargs != p->nargs || strcmp(exps, p->exps)) {
-      char buf[200 + NSIZE];
-
-      sprintf(buf, "redefinition of #define %s\n", name);
-      yywarn(buf);
+      yywarn("redefinition of #define %s\n", name);
     }
     p->exps = reinterpret_cast<char *>(
         DREALLOC(p->exps, strlen(exps) + 1, TAG_PREDEFINES, "add_define: redef"));
