@@ -20,7 +20,7 @@
 /****************************************************************************
  *                              COMPAT                                      *
  ****************************************************************************/
-#define NO_ADD_ACTION
+#undef NO_ADD_ACTION
 #undef NO_SNOOP
 #undef NO_ENVIRONMENT
 #undef NO_WIZARDS
@@ -57,7 +57,7 @@
 #define SAVE_GZ_EXTENSION ".o.gz"
 
 // configs for PACKAGE_UIDS
-#undef AUTO_SETEUID
+#define AUTO_SETEUID
 #undef AUTO_TRUST_BACKBONE
 
 // configs for PACKAGE_PARSE

@@ -2,7 +2,7 @@
 #include "base/package_api.h"
 
 // Copy from mapping.c to do mapping building
-static svalue_t *insert_in_mapping(mapping_t *m, const char *key) {
+static svalue_t *insert_in_mapping (mapping_t * m, char * key) {
     svalue_t lv;
     svalue_t *ret;
 
@@ -22,7 +22,7 @@ static svalue_t *insert_in_mapping(mapping_t *m, const char *key) {
 void f_set () {
     int i, j;
     object_t *ob;
-    svalue_t *dbase, *value = NULL;
+    svalue_t *data, *value = NULL;
     mapping_t *map;
     unsigned short type;
     char *src, *dst;
@@ -36,22 +36,22 @@ void f_set () {
     else
     	ob = current_object;
 
-    i = find_global_variable(ob->prog, "database", &type, 0);
+    i = find_global_variable(ob->prog, "dbase", &type, 0);
     if (i == -1)
     {
        	pop_2_elems();
-        error("(set) %s Îï¼þÎ´Ðû¸æÈ«ÓòÓ³Éä×ÊÁÏ¿â±äÊý¡£\n", ob->obname);
+        error("(set) %s ç‰©ä»¶æœªå®£å‘Šå…¨åŸŸæ˜ å°„èµ„æ–™åº“å˜æ•°ã€‚\n", ob->obname);
     }
 
-    dbase = &ob->variables[i];
+    data = &ob->variables[i];
 
-    if( dbase->type != T_MAPPING )
+    if( data->type != T_MAPPING )
     {
     	pop_2_elems();
-    	error("(set) %s Îï¼þµÄ×ÊÁÏ¿â±äÊýÐÍÌ¬´íÎó¡£\n", ob->obname);
+    	error("(set) %s ç‰©ä»¶çš„èµ„æ–™åº“å˜æ•°åž‹æ€é”™è¯¯ã€‚\n", ob->obname);
     }
 
-    map = dbase->u.map;
+    map = data->u.map;
     src = (char *)(sp-1)->u.string;
     dst = tmpstr = (char *)DMALLOC(SVALUE_STRLEN(sp-1) + 1, TAG_STRING, "set");
     j=0;
@@ -62,7 +62,7 @@ void f_set () {
     	if( ++j > 20 )
 	{
     		pop_2_elems();
-    		error("(set) %s too deep mapping(20)¡£\n", ob->obname);
+    		error("(set) %s too deep mapping(20)ã€‚\n", ob->obname);
     	}
 
 	while (*src != '/' && *src)
@@ -111,7 +111,7 @@ void f_set () {
 void f_set_temp () {
     int i, j;
     object_t *ob;
-    svalue_t *dbase, *value = NULL;
+    svalue_t *data, *value = NULL;
     mapping_t *map;
     unsigned short type;
     char *src, *dst;
@@ -125,22 +125,22 @@ void f_set_temp () {
     else
     	ob = current_object;
 
-    i = find_global_variable(ob->prog, "temp_database", &type, 0);
+    i = find_global_variable(ob->prog, "tmp_dbase", &type, 0);
     if (i == -1)
     {
         pop_2_elems();
-        error("(set_temp) %s Îï¼þÎ´Ðû¸æÈ«ÓòÓ³Éä×ÊÁÏ¿â±äÊý¡£\n", ob->obname);
+        error("(set_temp) %s ç‰©ä»¶æœªå®£å‘Šå…¨åŸŸæ˜ å°„èµ„æ–™åº“å˜æ•°ã€‚\n", ob->obname);
     }
 
-    dbase = &ob->variables[i];
+    data = &ob->variables[i];
 
-    if( dbase->type != T_MAPPING )
+    if( data->type != T_MAPPING )
     {
     	pop_2_elems();
-    	error("(set_temp) %s Îï¼þµÄ×ÊÁÏ¿â±äÊýÐÍÌ¬´íÎó¡£\n", ob->obname);
+    	error("(set_temp) %s ç‰©ä»¶çš„èµ„æ–™åº“å˜æ•°åž‹æ€é”™è¯¯ã€‚\n", ob->obname);
     }
 
-    map = dbase->u.map;
+    map = data->u.map;
     src = (char *)(sp-1)->u.string;
     dst = tmpstr = (char *)DMALLOC(SVALUE_STRLEN(sp-1) + 1, TAG_STRING, "set_temp");
     j=0;
@@ -151,7 +151,7 @@ void f_set_temp () {
     	if( ++j > 20 )
 	{
     		pop_2_elems();
-    		error("(set_temp) %s too deep mapping(20)¡£\n", ob->obname);
+    		error("(set_temp) %s too deep mapping(20)ã€‚\n", ob->obname);
     	}
 
 	while (*src != '/' && *src)
@@ -196,10 +196,11 @@ void f_set_temp () {
 //
 // query()
 //
-// ¶à²ã´Î mapping ½á¹¹ËÑÑ°
-// ¼ÇÒäÌå½ÚÊ¡»úÖÆ shadow_ob ¼ì²é
-// Ö»ÒªÓÐ shadow_ob ¾ÍÖ»²é shadow_ob, shadow_ob ¾ÍËã²é²»µ½Ò²²»»áÔÙ²é±¾Ìå, ¶øÊÇ´«»Ø 0
+// å¤šå±‚æ¬¡ mapping ç»“æž„æœå¯»
+// è®°å¿†ä½“èŠ‚çœæœºåˆ¶ shadow_ob æ£€æŸ¥
+// åªè¦æœ‰ shadow_ob å°±åªæŸ¥ shadow_ob, shadow_ob å°±ç®—æŸ¥ä¸åˆ°ä¹Ÿä¸ä¼šå†æŸ¥æœ¬ä½“, è€Œæ˜¯ä¼ å›ž 0
 //
+/*
 #ifdef F_QUERY
 void f_query () {
     int idx;
@@ -218,7 +219,7 @@ void f_query () {
     else
         ob = current_object;
 
-    idx = find_global_variable(ob->prog, "database", &type, 0);
+    idx = find_global_variable(ob->prog, "dbase", &type, 0);
     if (idx == -1)
     {
         free_string_svalue(sp--);
@@ -229,24 +230,24 @@ void f_query () {
 
     if( value->type != T_MAPPING )
     {
-    	free_string_svalue(sp--);
-    	error("(query) %s Îï¼þµÄ×ÊÁÏ¿â±äÊýÐÍÌ¬´íÎó¡£\n", ob->obname);
+        free_string_svalue(sp--);
+        error("(query) %s ç‰©ä»¶çš„èµ„æ–™åº“å˜æ•°åž‹æ€é”™è¯¯ã€‚\n", ob->obname);
     }
 
     shadow = find_string_in_mapping(value->u.map, "shadow_ob");
 
-    if( shadow != &const0u && shadow->type == T_OBJECT && ob != shadow->u.ob)
+    if( shadow != &const0u && shadow->type == T_OBJECT && ob != shadow->u.ob )
     {
-    	idx = find_global_variable(shadow->u.ob->prog, "database", &type, 0);
-    	if (idx != -1)
-    	{
-        	value = &shadow->u.ob->variables[idx];
+        idx = find_global_variable(shadow->u.ob->prog, "dbase", &type, 0);
+        if (idx != -1)
+        {
+            value = &shadow->u.ob->variables[idx];
 
-        	if( value->type != T_MAPPING )
-    			value = &ob->variables[idx];
-    		else
-    			ob = shadow->u.ob;
-    	}
+            if( value->type != T_MAPPING )
+                value = &ob->variables[idx];
+            else
+                ob = shadow->u.ob;
+        }
     }
 
     map = value->u.map;
@@ -255,27 +256,160 @@ void f_query () {
 
     while (*src)
     {
-	while (*src != '/' && *src)
-	    *dst++ = *src++;
-	if (*src == '/')
-	{
-	    while (*++src == '/');
-	    if( dst == tmpstr ) continue;
-	}
-	*dst = '\0';
-	value = find_string_in_mapping(map, tmpstr);
+        while (*src != '/' && *src)
+            *dst++ = *src++;
+        if (*src == '/')
+        {
+            while (*++src == '/');
+            if( dst == tmpstr ) continue;
+        }
+        *dst = '\0';
+        value = find_string_in_mapping(map, tmpstr);
 
-	if( value == &const0u ) break;
-	if( value->type != T_MAPPING )
-	{
-	    if(*src) value = &const0u;
-	    break;
-	}
-	map = value->u.map;
-	dst = tmpstr;
+        if( value == &const0u ) break;
+        if( value->type != T_MAPPING )
+        {
+            if(*src) value = &const0u;
+            break;
+        }
+        map = value->u.map;
+        dst = tmpstr;
     }
 
     FREE(tmpstr);
+    free_string_svalue(sp--);
+    push_svalue(value);
+}
+#endif
+*/
+
+//
+// query()
+//
+// å¤šå±‚æ¬¡ mapping ç»“æž„æœå¯»
+// è®°å¿†ä½“èŠ‚çœæœºåˆ¶ shadow_ob æ£€æŸ¥
+// å…ˆæœæŸ¥æœ¬ä½“,æ²¡æœ‰æ‰¾åˆ°åˆ™æœæŸ¥shadow_ob
+//
+
+#ifdef F_QUERY
+void f_query () {
+    int idx;
+    object_t *ob;
+    unsigned short type;
+    svalue_t *value;
+    char *src, *dst;
+    mapping_t *map;
+    char *tmpstr;
+
+    if( st_num_arg==2 )
+    {
+        ob=sp->u.ob;
+        pop_stack();
+    }
+    else
+        ob = current_object;
+
+    idx = find_global_variable(ob->prog, "dbase", &type, 0);
+    if (idx == -1)
+    {
+        free_string_svalue(sp--);
+        push_undefined();
+        return;
+    }
+    value = &ob->variables[idx];
+
+    if( value->type != T_MAPPING )
+    {
+        free_string_svalue(sp--);
+        error("(query) %s ç‰©ä»¶çš„èµ„æ–™åº“å˜æ•°åž‹æ€é”™è¯¯ã€‚\n", ob->obname);
+    }
+
+    map = value->u.map;
+    src = (char *)sp->u.string;
+    dst = tmpstr = (char *)DMALLOC(SVALUE_STRLEN(sp) + 1, TAG_STRING, "query");
+
+    while (*src)
+    {
+        while (*src != '/' && *src)
+            *dst++ = *src++;
+        if (*src == '/')
+        {
+            while (*++src == '/');
+            if( dst == tmpstr ) continue;
+        }
+        *dst = '\0';
+        value = find_string_in_mapping(map, tmpstr);
+
+        if( value == &const0u ) break;
+        if( value->type != T_MAPPING )
+        {
+            if(*src) value = &const0u;
+            break;
+        }
+        map = value->u.map;
+        dst = tmpstr;
+    }
+
+    FREE(tmpstr);
+
+    if( value == &const0u )
+    {
+        svalue_t *shadow;
+
+        value = &ob->variables[idx];
+
+        shadow = find_string_in_mapping(value->u.map, "shadow_ob");
+
+        if( shadow != &const0u && shadow->type == T_OBJECT && ob != shadow->u.ob)
+        {
+            idx = find_global_variable(shadow->u.ob->prog, "dbase", &type, 0);
+
+            if (idx != -1)
+            {
+                value = &shadow->u.ob->variables[idx];
+
+                if( value->type == T_MAPPING )
+                {
+                    ob = shadow->u.ob;
+
+                    map = value->u.map;
+                    src = (char *)sp->u.string;
+                    dst = tmpstr = (char *)DMALLOC(SVALUE_STRLEN(sp) + 1, TAG_STRING, "query");
+
+                    while (*src)
+                    {
+                        while (*src != '/' && *src)
+                            *dst++ = *src++;
+                        if (*src == '/')
+                        {
+                            while (*++src == '/');
+                            if( dst == tmpstr ) continue;
+                        }
+                        *dst = '\0';
+                        value = find_string_in_mapping(map, tmpstr);
+
+                        if( value == &const0u ) break;
+                        if( value->type != T_MAPPING )
+                        {
+                            if(*src) value = &const0u;
+                            break;
+                        }
+                        map = value->u.map;
+                        dst = tmpstr;
+                    }
+
+                    FREE(tmpstr);
+                }
+                else
+                    value = &const0u;
+            }
+            else
+                value = &const0u;
+        }
+        else
+            value = &const0u;
+    }
+
     free_string_svalue(sp--);
     push_svalue(value);
 }
@@ -284,7 +418,7 @@ void f_query () {
 //
 // query_temp()
 //
-// ¶à²ã´Î mapping ½á¹¹ËÑÑ°
+// å¤šå±‚æ¬¡ mapping ç»“æž„æœå¯»
 //
 #ifdef F_QUERY_TEMP
 void f_query_temp () {
@@ -302,7 +436,7 @@ void f_query_temp () {
     } else
         ob = current_object;
 
-    idx = find_global_variable(ob->prog, "temp_database", &type, 0);
+    idx = find_global_variable(ob->prog, "tmp_dbase", &type, 0);
     if (idx == -1)
     {
         free_string_svalue(sp--);
@@ -314,7 +448,7 @@ void f_query_temp () {
     if( value->type != T_MAPPING )
     {
     	free_string_svalue(sp--);
-    	error("(query_temp) %s Îï¼þµÄ×ÊÁÏ¿â±äÊýÐÍÌ¬´íÎó¡£\n", ob->obname);
+    	error("(query_temp) %s ç‰©ä»¶çš„èµ„æ–™åº“å˜æ•°åž‹æ€é”™è¯¯ã€‚\n", ob->obname);
     }
 
     map = value->u.map;
@@ -370,11 +504,11 @@ void f_addn () {
     else
         ob = current_object;
 
-    i = find_global_variable(ob->prog, "database", &type, 0);
+    i = find_global_variable(ob->prog, "dbase", &type, 0);
     if (i == -1)
     {
         pop_2_elems();
-        error("(addn) %s Îï¼þÎ´Ðû¸æÈ«ÓòÓ³Éä×ÊÁÏ¿â±äÊý¡£\n", ob->obname);
+        error("(addn) %s ç‰©ä»¶æœªå®£å‘Šå…¨åŸŸæ˜ å°„èµ„æ–™åº“å˜æ•°ã€‚\n", ob->obname);
     }
 
     value = &ob->variables[i];
@@ -382,7 +516,7 @@ void f_addn () {
     if( value->type != T_MAPPING )
     {
     	pop_2_elems();
-    	error("(addn) %s Îï¼þµÄ×ÊÁÏ¿â±äÊýÐÍÌ¬´íÎó¡£\n", ob->obname);
+    	error("(addn) %s ç‰©ä»¶çš„èµ„æ–™åº“å˜æ•°åž‹æ€é”™è¯¯ã€‚\n", ob->obname);
     }
 
     map = value->u.map;
@@ -396,7 +530,7 @@ void f_addn () {
     	if( ++j > 20 )
 	{
     		pop_2_elems();
-    		error("(addn) %s too deep mapping(20)¡£\n", ob->obname);
+    		error("(addn) %s too deep mapping(20)ã€‚\n", ob->obname);
     	}
 
 	while (*src != '/' && *src)
@@ -464,11 +598,11 @@ void f_addn_temp () {
     else
         ob = current_object;
 
-    i = find_global_variable(ob->prog, "temp_database", &type, 0);
+    i = find_global_variable(ob->prog, "tmp_dbase", &type, 0);
     if (i == -1)
     {
         pop_2_elems();
-        error("(addn_temp) %s Îï¼þÎ´Ðû¸æÈ«ÓòÓ³Éä×ÊÁÏ¿â±äÊý¡£\n", ob->obname);
+        error("(addn_temp) %s ç‰©ä»¶æœªå®£å‘Šå…¨åŸŸæ˜ å°„èµ„æ–™åº“å˜æ•°ã€‚\n", ob->obname);
     }
 
     value = &ob->variables[i];
@@ -476,7 +610,7 @@ void f_addn_temp () {
     if( value->type != T_MAPPING )
     {
     	pop_2_elems();
-    	error("(addn_temp) %s Îï¼þµÄ×ÊÁÏ¿â±äÊýÐÍÌ¬´íÎó¡£\n", ob->obname);
+    	error("(addn_temp) %s ç‰©ä»¶çš„èµ„æ–™åº“å˜æ•°åž‹æ€é”™è¯¯ã€‚\n", ob->obname);
     }
 
     map = value->u.map;
@@ -490,7 +624,7 @@ void f_addn_temp () {
     	if( ++j > 20 )
 	{
     		pop_2_elems();
-    		error("(addn_temp) %s too deep mapping(20)¡£\n", ob->obname);
+    		error("(addn_temp) %s too deep mapping(20)ã€‚\n", ob->obname);
     	}
 
 	while (*src != '/' && *src)
@@ -557,11 +691,11 @@ void f_delete () {
     else
     	ob = current_object;
 
-    i = find_global_variable(ob->prog, "database", &type, 0);
+    i = find_global_variable(ob->prog, "dbase", &type, 0);
     if (i == -1)
     {
         free_string_svalue(sp--);
-        error("(delete) %s Îï¼þÎ´Ðû¸æÈ«ÓòÓ³Éä×ÊÁÏ¿â±äÊý¡£\n", ob->obname);
+        error("(delete) %s ç‰©ä»¶æœªå®£å‘Šå…¨åŸŸæ˜ å°„èµ„æ–™åº“å˜æ•°ã€‚\n", ob->obname);
     }
 
     value = &ob->variables[i];
@@ -569,7 +703,7 @@ void f_delete () {
     if( value->type != T_MAPPING )
     {
         free_string_svalue(sp--);
-    	error("(delete) %s Îï¼þµÄ×ÊÁÏ¿â±äÊýÐÍÌ¬´íÎó¡£\n", ob->obname);
+    	error("(delete) %s ç‰©ä»¶çš„èµ„æ–™åº“å˜æ•°åž‹æ€é”™è¯¯ã€‚\n", ob->obname);
     }
 
     map = value->u.map;
@@ -625,7 +759,7 @@ void f_delete_temp () {
     svalue_t *value, lv;
     mapping_t *map;
     unsigned short type;
-   char *src, *dst;
+    char *src, *dst;
 
     if( st_num_arg == 2 )
     {
@@ -635,11 +769,11 @@ void f_delete_temp () {
     else
     	ob = current_object;
 
-    i = find_global_variable(ob->prog, "temp_database", &type, 0);
+    i = find_global_variable(ob->prog, "tmp_dbase", &type, 0);
     if (i == -1)
     {
         free_string_svalue(sp--);
-        error("(delete_temp) %s Îï¼þÎ´Ðû¸æÈ«ÓòÓ³Éä×ÊÁÏ¿â±äÊý¡£\n", ob->obname);
+        error("(delete_temp) %s ç‰©ä»¶æœªå®£å‘Šå…¨åŸŸæ˜ å°„èµ„æ–™åº“å˜æ•°ã€‚\n", ob->obname);
     }
 
     value = &ob->variables[i];
@@ -647,7 +781,7 @@ void f_delete_temp () {
     if( value->type != T_MAPPING )
     {
         free_string_svalue(sp--);
-    	error("(delete_temp) %s Îï¼þµÄ×ÊÁÏ¿â±äÊýÐÍÌ¬´íÎó¡£\n", ob->obname);
+    	error("(delete_temp) %s ç‰©ä»¶çš„èµ„æ–™åº“å˜æ•°åž‹æ€é”™è¯¯ã€‚\n", ob->obname);
     }
 
     map = value->u.map;
