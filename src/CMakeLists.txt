@@ -215,12 +215,18 @@ include_directories(SYSTEM ${LIBEVENT_INCLUDE_DIR})
 find_package(ICU REQUIRED COMPONENTS uc dt)
 # Make ICU use utf-8 internally
 add_compile_options("-DU_CHARSET_IS_UTF8=1")
+if(STATIC)
+  add_compile_options("-DU_STATIC_IMPLEMENTATION")
+ENDIF()
+
 # multiple packages uses this, so we simply do a global inclusion too.
 include_directories(SYSTEM ${ICU_INCLUDE_DIRS})
 
 # Bundled libraries
 add_subdirectory(thirdparty/crypt EXCLUDE_FROM_ALL)
 add_subdirectory(thirdparty/libtelnet EXCLUDE_FROM_ALL)
+# TODO: required by windows code
+add_compile_options("-DGHC_WIN_DISABLE_WSTRING_STORAGE_TYPE")
 add_subdirectory(thirdparty/filesystem EXCLUDE_FROM_ALL)
 include_directories(thirdparty/filesystem/include)
 add_subdirectory(thirdparty/fmt EXCLUDE_FROM_ALL)
@@ -236,7 +242,7 @@ set(LWS_WITH_LIBEVENT ON CACHE BOOL "" FORCE)
 set(LWS_STATIC_PIC ON CACHE BOOL "" FORCE)
 set(LWS_WITH_DIR OFF CACHE BOOL "" FORCE)
 set(LWS_WITH_SSL ON CACHE BOOL "" FORCE)
-set(LWS_WITH_HTTP2 OFF CACHE BOOL "" FORCE)
+set(LWS_WITH_HTTP2 ON CACHE BOOL "" FORCE)
 set(LWS_WITHOUT_TESTAPPS ON CACHE BOOL "" FORCE)
 set(LWS_WITHOUT_TEST_SERVER ON CACHE BOOL "" FORCE)
 set(LWS_WITHOUT_TEST_SERVER_EXTPOLL ON CACHE BOOL "" FORCE)
@@ -245,6 +251,7 @@ set(LWS_WITHOUT_TEST_CLIENT ON CACHE BOOL "" FORCE)
 set(LWS_WITH_LEJP OFF CACHE BOOL "" FORCE)
 set(LWS_WITH_LEJP_CONF OFF CACHE BOOL "" FORCE)
 set(LWS_UNIX_SOCK OFF CACHE BOOL "" FORCE)
+set(LWS_WITH_NETLINK OFF CACHE BOOL "" FORCE)
 set(OPENSSL_FOUND 0) # hack to force lws re-search openssl
 add_subdirectory(thirdparty/libwebsockets EXCLUDE_FROM_ALL)
 include_directories("thirdparty/libwebsockets/include" SYSTEM)
@@ -319,6 +326,7 @@ set(SRC
   "comm.cc"
   "mainlib.cc"
   "user.cc"
+  "symbol.cc"
   "net/tls.cc"
   "net/telnet.cc"
   "net/websocket.cc"
@@ -410,6 +418,7 @@ endif ()
 # end of JEMALLOC
 
 target_link_libraries(libdriver PUBLIC ghc_filesystem)
+
 target_link_libraries(libdriver PRIVATE fmt::fmt-header-only)
 
 list(APPEND FLUFFOS_LIBRARIES autogen)
@@ -477,6 +486,9 @@ target_link_libraries(driver PUBLIC ${FLUFFOS_LINK})
 
 add_executable(lpcc "main_lpcc.cc")
 target_link_libraries(lpcc PUBLIC ${FLUFFOS_LINK})
+
+add_executable(symbol "main_symbol.cc")
+target_link_libraries(symbol PUBLIC ${FLUFFOS_LINK})
 
 include(helper)
 
